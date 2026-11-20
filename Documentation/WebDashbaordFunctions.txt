@@ -1,0 +1,13 @@
+Web Dashboard pages
+=========================================================================================================================================================================================
+
+Login
+
+Register
+	-Maybe think of another way, don't want people to be able to access account creation at all.
+
+Orders
+
+Menu Management
+
+Add/ edit menu item

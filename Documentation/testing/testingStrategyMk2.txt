@@ -1,0 +1,874 @@
+# Testing Strategy & Architecture
+
+## 1. Overview & Objectives
+
+This document defines the testing strategy for the Cafeteria Ordering Backend API.
+
+The primary objective is to maintain a test suite that verifies:
+
+* Business rules and service-layer logic
+* REST API contracts and HTTP responses
+* Request validation and error handling
+* Authentication and authorization
+* JWT generation, validation, expiration, and blacklisting
+* Database interactions where appropriate
+* WebSocket functionality
+* API behaviour through manual Postman testing
+
+The testing strategy uses multiple levels of testing so that most tests remain fast and isolated while more complex integration and system behaviour is tested separately.
+
+---
+
+## 2. Testing Pyramid & Responsibilities
+
+The project follows a three-level automated testing approach, supplemented by manual API testing through Postman.
+
+```text
+                    /\
+                   /  \
+                  /    \       3. Security & Full
+                 /      \         Integration Tests
+                /        \      (@SpringBootTest)
+               /----------\    Real security pipeline,
+              /            \   JWT, database & WebSocket
+             /              \
+            /----------------\
+           /                  \  2. Controller/Web Tests
+          /                    \    (MockMvc)
+         /                      \  HTTP endpoints, validation,
+        /                        \ JSON & security behaviour
+       /--------------------------\
+      /                            \
+     /                              \  1. Unit Tests
+    /                                \    (JUnit + Mockito)
+   /__________________________________\   Business logic in isolation
+```
+
+### Layer 1: Unit Tests — Service Layer
+
+**Scope:**
+
+* Business logic
+* Validation rules
+* Data transformations
+* Service-level exception handling
+* Repository interaction logic
+* Order lifecycle rules
+* Authentication and user-management logic
+
+**Location:**
+
+```text
+src/test/java/org/example/cafeteria_ordering_backend/service/
+```
+
+**Technology:**
+
+* JUnit 5
+* Mockito
+* `@ExtendWith(MockitoExtension.class)`
+
+**Strategy:**
+
+Service dependencies such as repositories and other Spring components are mocked using `@Mock`.
+
+These tests should not require a database or full Spring application context.
+
+The objective is to keep service tests fast and focused on one unit of behaviour at a time.
+
+Examples include:
+
+* Registering a user
+* Rejecting duplicate email addresses
+* Authenticating invalid credentials
+* Creating categories
+* Retrieving menu items
+* Validating order contents
+* Rejecting orders for unavailable menu items
+* Validating order status transitions
+* Cancelling orders according to their current status
+
+---
+
+### Layer 2: Controller/Web Tests
+
+**Scope:**
+
+* REST endpoint mappings
+* HTTP methods
+* Request and response handling
+* JSON serialization/deserialization
+* DTO validation
+* HTTP status codes
+* Error responses
+* Controller-level security behaviour
+
+**Location:**
+
+```text
+src/test/java/org/example/cafeteria_ordering_backend/controller/
+```
+
+**Technology:**
+
+* Spring Boot Test
+* `MockMvc`
+* `@WebMvcTest` where appropriate
+* Mockito / `@MockitoBean`
+* Spring Security Test
+* `@WithMockUser`
+
+**Strategy:**
+
+Controller tests should test the HTTP/API layer without unnecessarily testing the entire application.
+
+`@WithMockUser` may be used when the purpose of the test is to verify controller behaviour for an already-authenticated user.
+
+For example:
+
+```java
+@WithMockUser(username = "customer", roles = {"CUSTOMER"})
+```
+
+This allows controller tests to verify authorization behaviour without manually generating a JWT for every test.
+
+These tests should verify behaviour such as:
+
+* `200 OK`
+* `201 Created`
+* `400 Bad Request`
+* `401 Unauthorized`
+* `403 Forbidden`
+* `404 Not Found`
+* Correct JSON response structures
+* Correct request validation
+* Correct endpoint mappings
+
+---
+
+### Layer 3: Security & Full Integration Tests
+
+**Scope:**
+
+Tests requiring the real Spring application context and, where appropriate, the database and security pipeline.
+
+This includes:
+
+* Authentication flow
+* JWT generation
+* JWT parsing and validation
+* JWT expiration
+* `JwtAuthenticationFilter`
+* Token blacklisting
+* Real authorization configuration
+* Database interaction
+* WebSocket functionality
+* Integration between multiple application components
+
+**Location:**
+
+```text
+src/test/java/org/example/cafeteria_ordering_backend/security/
+src/test/java/org/example/cafeteria_ordering_backend/controller/
+src/test/java/org/example/cafeteria_ordering_backend/websocket/
+```
+
+**Technology:**
+
+* `@SpringBootTest`
+* `@AutoConfigureMockMvc`
+* JUnit 5
+* Spring Security Test
+* `@Transactional` where appropriate
+* WebSocket test infrastructure
+
+**Strategy:**
+
+These tests should verify complete application flows where isolated unit or controller tests are insufficient.
+
+A typical authentication integration flow is:
+
+```text
+Register
+   ↓
+Login
+   ↓
+Receive JWT
+   ↓
+Access protected endpoint
+   ↓
+Logout
+   ↓
+Token is blacklisted
+   ↓
+Attempt to reuse JWT
+   ↓
+401 Unauthorized
+```
+
+These tests should be used selectively because they are slower and more dependent on the application environment than unit tests.
+
+---
+
+## 3. Test Package Structure
+
+Tests should generally mirror the main application package structure under:
+
+```text
+org.example.cafeteria_ordering_backend
+```
+
+Recommended structure:
+
+```text
+src/test/java/org/example/cafeteria_ordering_backend/
+│
+├── controller/
+│   ├── OrderControllerTest.java
+│   ├── OrderSecurityTest.java
+│   └── ...
+│
+├── security/
+│   ├── JwtAuthenticationFilterTest.java
+│   └── ...
+│
+├── service/
+│   ├── AuthServiceImplTest.java
+│   ├── CategoryServiceImplTest.java
+│   ├── MenuCustomizationServiceImplTest.java
+│   ├── MenuItemServiceImplTest.java
+│   ├── OrderServiceImplTest.java
+│   └── ...
+│
+└── websocket/
+    ├── WebSocketOrderIntegrationTest.java
+    ├── CheckoutWebSocketIntegrationTest.java
+    └── CancellationWebSocketIntegrationTest.java
+```
+
+Additional packages may be introduced when a new testing concern requires them.
+
+---
+
+## 4. Naming Conventions
+
+### Test Classes
+
+Unit tests:
+
+```text
+[TargetClass]Test.java
+```
+
+Example:
+
+```text
+AuthServiceImplTest.java
+OrderServiceImplTest.java
+```
+
+Integration tests:
+
+```text
+[TargetClass]IntegrationTest.java
+```
+
+Example:
+
+```text
+AuthControllerIntegrationTest.java
+WebSocketOrderIntegrationTest.java
+```
+
+### Test Methods
+
+Test methods should clearly describe:
+
+```text
+[method]_[expectedBehaviour]_[condition]
+```
+
+Examples:
+
+```java
+register_ThrowsException_WhenEmailAlreadyRegistered()
+```
+
+```java
+checkout_RejectsOrder_WhenMenuItemUnavailable()
+```
+
+```java
+getOrder_Returns404_WhenOrderDoesNotExist()
+```
+
+```java
+updateOrderStatus_Returns403_WhenUserLacksRequiredRole()
+```
+
+The exact naming style may vary where a more descriptive test name improves readability.
+
+---
+
+# 5. Current Automated Test Responsibilities
+
+The automated test suite should be divided according to the responsibility of each test type.
+
+## Service Tests
+
+Service tests should primarily verify business rules and service behaviour.
+
+Current service test areas include:
+
+```text
+AuthServiceImplTest
+├── LoginTests
+├── LogoutTests
+├── ProfileTests
+└── RegisterTests
+
+CategoryServiceImplTest
+├── CreateCategoryTests
+└── GetAllActiveCategoriesTests
+
+MenuCustomizationServiceImplTest
+├── CreatedModifierGroupTests
+├── CreatedModifierTests
+└── GetCustomizationByMenuItemTests
+
+MenuItemServiceImplTest
+├── CreateMenuItemTests
+├── GetAllMenuItemsTests
+├── GetMenuItemByIdTests
+└── GetMenuItemsByCategoryTests
+
+OrderServiceImplTest
+├── CancelOrderTests
+├── CheckoutTests
+├── QueryOrderTests
+└── UpdateOrderStatusTests
+```
+
+These tests should focus on business behaviour rather than reproducing HTTP-level testing.
+
+---
+
+## Controller Tests
+
+Controller tests should verify the API boundary.
+
+Current controller test areas include:
+
+```text
+OrderControllerTest
+├── CheckoutOrderTests
+├── GetOrderTests
+└── UpdateOrderStatusTests
+
+OrderSecurityTest
+├── RoleBasedAccessTests
+└── UnauthenticatedAccessTests
+```
+
+Controller tests should verify that the application exposes the expected HTTP contract.
+
+---
+
+## Security Tests
+
+Security tests should verify the application's authentication and authorization mechanisms.
+
+Important areas include:
+
+* JWT authentication
+* Invalid JWT handling
+* Expired JWT handling
+* Missing authentication
+* Role-based authorization
+* Token blacklisting
+* Access to protected endpoints
+* Access restrictions between Student, Customer, Staff and Admin roles
+
+`JwtAuthenticationFilterTest` is responsible for testing the JWT authentication filter in isolation where possible.
+
+Full authentication flows should be covered by integration tests where required.
+
+---
+
+## WebSocket Integration Tests
+
+WebSocket functionality should be tested separately from ordinary REST controller tests.
+
+Current WebSocket integration tests include:
+
+```text
+WebSocketOrderIntegrationTest
+CheckoutWebSocketIntegrationTest
+CancellationWebSocketIntegrationTest
+```
+
+These tests should verify that relevant order events are correctly propagated through the WebSocket infrastructure.
+
+---
+
+# 6. Manual API Testing Strategy — Postman
+
+Postman is used as a complementary manual API testing tool.
+
+Postman should not replace the automated JUnit test suite.
+
+The automated tests provide repeatable regression testing, while Postman provides a convenient way to manually exercise the running API and inspect real HTTP requests and responses.
+
+## Postman Environment
+
+The primary Postman environment should contain variables such as:
+
+```text
+baseUrl
+student_token
+customer_token
+staff_token
+admin_token
+```
+
+The base URL should normally be:
+
+```text
+http://localhost:8080
+```
+
+The token variables allow requests to be tested using different authenticated roles without manually copying JWTs into every request.
+
+Sensitive credentials should not be committed to Git.
+
+---
+
+## Postman Collection Structure
+
+The collection should be organized around externally exposed API functionality rather than individual database tables.
+
+Recommended structure:
+
+```text
+Cafeteria Ordering System API
+│
+├── 01 - Authentication
+│   ├── Register - Valid
+│   ├── Register - Duplicate Email
+│   ├── Register - Invalid Data
+│   ├── Login - Valid
+│   ├── Login - Invalid Credentials
+│   ├── Get Profile - Authenticated
+│   ├── Get Profile - No Token
+│   ├── Logout - Valid
+│   └── Get Profile - Blacklisted Token
+│
+├── 02 - Categories
+│
+├── 03 - Menu Items
+│
+├── 04 - Menu Customization
+│
+├── 05 - Orders
+│
+├── 06 - Users
+│
+├── 07 - Roles
+│
+├── 08 - Authorization
+│
+└── 09 - WebSocket
+```
+
+The exact requests within each folder should be based on the current controller mappings and DTOs.
+
+The Postman collection should therefore be updated whenever the public API changes.
+
+---
+
+## Positive and Negative API Tests
+
+Positive and negative tests should generally be grouped with the endpoint they test rather than placing all negative tests into one large folder.
+
+For example:
+
+```text
+05 - Orders
+│
+├── Checkout - Valid
+├── Checkout - Empty Items
+├── Checkout - Invalid Menu Item
+├── Checkout - Invalid Quantity
+├── Checkout - Out Of Stock
+├── Checkout - Outside Operating Hours
+├── Get Order - Valid
+├── Get Order - Invalid ID
+├── Cancel - Valid
+└── Cancel - Invalid State
+```
+
+This makes it easier to see the complete test coverage for a particular API operation.
+
+---
+
+## Postman Test Scripts
+
+Where practical, Postman test scripts should automatically verify basic expectations such as:
+
+* Expected HTTP status code
+* Required response fields
+* Response data types
+* JWT token presence
+* JWT token extraction
+* Error response structure
+
+For example, a successful login request may extract the returned JWT and store it in the appropriate environment variable.
+
+This reduces manual copying and makes repeated API testing faster.
+
+---
+
+# 7. API Test Coverage
+
+Postman testing should cover both normal and exceptional API behaviour.
+
+Important categories include:
+
+### Authentication
+
+* Valid registration
+* Duplicate registration
+* Invalid registration data
+* Valid login
+* Invalid credentials
+* Authenticated profile request
+* Missing token
+* Invalid token
+* Logout
+* Reuse of blacklisted token
+
+### Categories
+
+* Retrieve categories
+* Create valid category
+* Invalid category data
+* Invalid/non-existent category where applicable
+
+### Menu Items
+
+* Retrieve all menu items
+* Retrieve individual menu item
+* Retrieve menu items by category
+* Create valid menu item
+* Invalid menu item data
+* Non-existent menu item/category
+
+### Menu Customization
+
+* Create modifier group
+* Create modifier
+* Link modifier group to menu item
+* Retrieve menu item customizations
+* Invalid references
+* Invalid customization data
+
+### Orders
+
+* Valid checkout
+* Multiple-item checkout
+* Invalid menu item
+* Invalid quantity
+* Empty order
+* Unavailable menu item
+* Invalid modifier
+* Invalid user
+* Outside operating hours
+* Retrieve order
+* Retrieve user order history
+* Retrieve current orders
+
+### Order Lifecycle
+
+* Valid status transition
+* Invalid status
+* Invalid status transition
+* Cancellation while cancellation is permitted
+* Cancellation after cancellation is no longer permitted
+* Order history/audit verification where applicable
+
+### Authorization
+
+Test access using the application's supported roles:
+
+```text
+Student
+Customer
+Staff
+Admin
+```
+
+Verify both:
+
+* Access that should be permitted
+* Access that should be rejected
+
+Also verify:
+
+* No JWT
+* Invalid JWT
+* Expired JWT
+* Blacklisted JWT
+
+---
+
+# 8. Test Data Management
+
+Tests should avoid relying on undocumented or fragile database state wherever possible.
+
+When a test requires specific records, the required test data should be clearly documented.
+
+For manual Postman testing:
+
+* Use known test accounts.
+* Use known menu items and modifier groups.
+* Record required IDs as environment variables where practical.
+* Avoid modifying production or real user data.
+* Be aware that successful POST/PUT requests may change the database state and affect later tests.
+
+For automated tests:
+
+* Prefer isolated test data.
+* Use transactions or test fixtures where appropriate.
+* Avoid depending on the order in which tests execute.
+
+---
+
+# 9. Database-Dependent Testing
+
+Database-dependent tests should be limited to tests where database behaviour is part of what is being verified.
+
+Unit tests should not require the database.
+
+Integration tests may use the application's configured database and should verify:
+
+* Entity persistence
+* Repository behaviour
+* Relationships
+* Transactions
+* Order creation
+* Order status history
+* Concurrent or transactional behaviour where applicable
+
+Database state should not be assumed to remain unchanged between independent integration tests unless the test explicitly manages that state.
+
+---
+
+# 10. Test Execution
+
+## Running Tests in IntelliJ IDEA
+
+To run the complete test suite:
+
+1. Open the `src/test/java` directory.
+2. Right-click the test source directory.
+3. Select **Run Tests** / **Run 'All Tests'**.
+
+Individual test classes or methods can also be run directly from the editor.
+
+---
+
+## Running Tests with Maven
+
+From the `Backend/` directory:
+
+### Run all tests
+
+```bash
+./mvnw test
+```
+
+On Windows:
+
+```powershell
+.\mvnw.cmd test
+```
+
+### Run a specific test class
+
+```bash
+./mvnw test -Dtest=AuthServiceImplTest
+```
+
+### Run a specific test method
+
+```bash
+./mvnw test -Dtest=AuthServiceImplTest#register_ThrowsException_WhenEmailAlreadyRegistered
+```
+
+### Run service tests
+
+```bash
+./mvnw test -Dtest=*Service*Test
+```
+
+The exact Maven test pattern may be adjusted as the test suite grows.
+
+---
+
+# 11. Regression Testing
+
+Whenever backend functionality is changed, the relevant automated tests should be executed.
+
+At minimum:
+
+```text
+Code Change
+    ↓
+Run relevant unit tests
+    ↓
+Run relevant controller/security tests
+    ↓
+Run integration tests if affected
+    ↓
+Run relevant Postman requests against the running application
+    ↓
+Run complete test suite before major commits/releases
+```
+
+Changes to security configuration should receive particular attention because a small configuration change can affect multiple endpoints.
+
+Changes to order processing should similarly be tested against the complete order lifecycle.
+
+---
+
+# 12. Definition of a Successful Test
+
+A test is considered successful when:
+
+1. The request or operation executes under the intended conditions.
+2. The actual result matches the documented expected behaviour.
+3. The expected HTTP status or exception is produced.
+4. The response structure is correct where applicable.
+5. Relevant database changes occur correctly.
+6. No unintended database or application state changes occur.
+7. Security restrictions are correctly enforced.
+
+A successful HTTP response alone does not necessarily indicate that the underlying business behaviour is correct.
+
+---
+
+# 13. Testing Documentation
+
+Testing documentation should be maintained under:
+
+```text
+Documentation/testing/
+```
+
+Current files include:
+
+```text
+testingStrategy.txt
+addViewTesting.txt
+postmanCollection.txt
+postmanEnv.txt
+```
+
+### `testingStrategy.txt`
+
+Defines the overall automated and manual testing strategy.
+
+### `addViewTesting.txt`
+
+Contains historical/manual API testing commands and examples.
+
+This document should be updated when useful, but the current controller and DTO implementations should be treated as the authoritative source for the actual API.
+
+### `postmanCollection.txt`
+
+Documents the structure and contents of the Postman collection.
+
+The actual exported Postman collection should also be stored here if the project requires the collection to be committed to source control.
+
+### `postmanEnv.txt`
+
+Documents the required Postman environment variables.
+
+Actual secrets, passwords, and private tokens should not be committed to source control.
+
+---
+
+# 14. Testing Principles
+
+The project should follow these general principles:
+
+### Test the correct layer
+
+Business rules belong primarily in service tests.
+
+HTTP behaviour belongs primarily in controller tests.
+
+Security pipeline behaviour belongs in security/integration tests.
+
+Manual API exploration belongs in Postman.
+
+### Prefer isolated tests
+
+Most tests should execute without requiring the full application context or database.
+
+### Test both success and failure
+
+Every important API operation should have tests for expected successful behaviour as well as relevant invalid input, missing resources, authorization failures, and business-rule violations.
+
+### Avoid duplicate testing
+
+The same behaviour does not need to be exhaustively tested at every layer.
+
+For example, a business rule may be thoroughly tested in a service unit test while the controller test verifies that the resulting exception is correctly translated into an HTTP response.
+
+### Keep tests deterministic
+
+Tests should not depend on:
+
+* Test execution order
+* Existing random database state
+* Current time unless time is specifically being tested
+* External services
+* Manually modified production data
+
+### Keep the API documentation synchronized
+
+When an endpoint, DTO, authentication rule, or response changes, the relevant automated tests, Postman requests, and testing documentation should be reviewed and updated.
+
+---
+
+# 15. Overall Testing Architecture
+
+The final testing approach can be summarized as:
+
+```text
+                     CAFETERIA API
+                           │
+          ┌────────────────┼────────────────┐
+          │                │                │
+          ▼                ▼                ▼
+       Services       REST Controllers    Security
+          │                │                │
+          ▼                ▼                ▼
+       Unit Tests      MockMvc Tests     Integration
+       JUnit/Mockito   HTTP/API Tests    Tests
+          │                │                │
+          └────────────────┼────────────────┘
+                           │
+                           ▼
+                   Full Test Suite
+                           │
+                           ▼
+                    Manual API Testing
+                        Postman
+                           │
+                           ▼
+                 Running Backend / DB
+```
+
+The purpose of this architecture is to provide fast feedback during development while still verifying the complete behaviour of the application through targeted integration and manual API testing.

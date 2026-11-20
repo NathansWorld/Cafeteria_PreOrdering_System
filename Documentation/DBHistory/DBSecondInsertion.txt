@@ -1,0 +1,254 @@
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+START TRANSACTION;
+SET time_zone = "+00:00";
+
+-- --------------------------------------------------------
+-- Table structure for table `roles`
+-- --------------------------------------------------------
+CREATE TABLE `roles` (
+  `role_id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `role_name` varchar(50) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`role_id`),
+  UNIQUE KEY `uq_role_name` (`role_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Dumping data for table `roles`
+INSERT INTO `roles` (`role_id`, `role_name`) VALUES
+(1, 'Admin'),
+(2, 'Staff'),
+(3, 'Student');
+
+-- --------------------------------------------------------
+-- Table structure for table `users`
+-- --------------------------------------------------------
+CREATE TABLE `users` (
+  `user_id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `customer_code` varchar(50) DEFAULT NULL,
+  `first_name` varchar(100) NOT NULL,
+  `last_name` varchar(100) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `password_hash` varchar(255) NOT NULL,
+  `role_id` bigint(20) NOT NULL,
+  `active` tinyint(1) DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`user_id`),
+  UNIQUE KEY `uq_email` (`email`),
+  UNIQUE KEY `uq_customer_code` (`customer_code`),
+  KEY `idx_users_role_id` (`role_id`),
+  CONSTRAINT `fk_users_roles` FOREIGN KEY (`role_id`) REFERENCES `roles` (`role_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `categories`
+-- --------------------------------------------------------
+CREATE TABLE `categories` (
+  `category_id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `category_name` varchar(100) NOT NULL,
+  `display_order` int(11) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`category_id`),
+  UNIQUE KEY `uq_category_name` (`category_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `modifier_groups`
+-- --------------------------------------------------------
+CREATE TABLE `modifier_groups` (
+  `modifier_group_id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `minimum_selections` int(11) DEFAULT 0,
+  `maximum_selections` int(11) DEFAULT 1,
+  `available` tinyint(1) DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`modifier_group_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `category_default_groups`
+-- --------------------------------------------------------
+CREATE TABLE `category_default_groups` (
+  `category_default_group_id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `category_id` bigint(20) NOT NULL,
+  `modifier_group_id` bigint(20) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`category_default_group_id`),
+  UNIQUE KEY `uq_category_group` (`category_id`, `modifier_group_id`),
+  CONSTRAINT `fk_cdg_category` FOREIGN KEY (`category_id`) REFERENCES `categories` (`category_id`),
+  CONSTRAINT `fk_cdg_modifier_group` FOREIGN KEY (`modifier_group_id`) REFERENCES `modifier_groups` (`modifier_group_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `menu_items`
+-- --------------------------------------------------------
+CREATE TABLE `menu_items` (
+  `menu_item_id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `category_id` bigint(20) NOT NULL,
+  `name` varchar(150) NOT NULL,
+  `description` text DEFAULT NULL,
+  `price` decimal(10,2) NOT NULL,
+  `available` tinyint(1) DEFAULT 1,
+  `image_path` varchar(255) DEFAULT NULL,
+  `display_order` int(11) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`menu_item_id`),
+  KEY `idx_menu_items_category_id` (`category_id`),
+  CONSTRAINT `fk_menu_items_category` FOREIGN KEY (`category_id`) REFERENCES `categories` (`category_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `menu_item_modifier_groups`
+-- --------------------------------------------------------
+CREATE TABLE `menu_item_modifier_groups` (
+  `menu_item_id` bigint(20) NOT NULL,
+  `modifier_group_id` bigint(20) NOT NULL,
+  `display_order` int(11) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`menu_item_id`, `modifier_group_id`),
+  CONSTRAINT `fk_mimg_menu_item` FOREIGN KEY (`menu_item_id`) REFERENCES `menu_items` (`menu_item_id`),
+  CONSTRAINT `fk_mimg_modifier_group` FOREIGN KEY (`modifier_group_id`) REFERENCES `modifier_groups` (`modifier_group_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `modifiers`
+-- --------------------------------------------------------
+CREATE TABLE `modifiers` (
+  `modifier_id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `modifier_group_id` bigint(20) NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `added_price` decimal(10,2) DEFAULT 0.00,
+  `available` tinyint(1) DEFAULT 1,
+  `display_order` int(11) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`modifier_id`),
+  KEY `idx_modifiers_group_id` (`modifier_group_id`),
+  CONSTRAINT `fk_modifiers_group` FOREIGN KEY (`modifier_group_id`) REFERENCES `modifier_groups` (`modifier_group_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `order_status`
+-- --------------------------------------------------------
+CREATE TABLE `order_status` (
+  `status_id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `status_name` varchar(50) NOT NULL,
+  `sort_order` int(11) DEFAULT 0,
+  `is_final` tinyint(1) DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`status_id`),
+  UNIQUE KEY `uq_status_name` (`status_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Dumping data for table `order_status`
+INSERT INTO `order_status` (`status_id`, `status_name`, `sort_order`, `is_final`) VALUES
+(1, 'Submitted', 1, 0),
+(2, 'Accepted', 2, 0),
+(3, 'Preparing', 3, 0),
+(4, 'Ready', 4, 0),
+(5, 'Collected', 5, 1),
+(6, 'Cancelled', 6, 1);
+
+-- --------------------------------------------------------
+-- Table structure for table `orders`
+-- --------------------------------------------------------
+CREATE TABLE `orders` (
+  `order_id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `user_id` bigint(20) NOT NULL,
+  `status_id` bigint(20) NOT NULL,
+  `customer_order_number` varchar(20) DEFAULT NULL,
+  `requested_collection_time` timestamp NULL DEFAULT NULL,
+  `collected_at` timestamp NULL DEFAULT NULL,
+  `total_price` decimal(10,2) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`order_id`),
+  UNIQUE KEY `uq_customer_order_number` (`customer_order_number`),
+  KEY `idx_orders_user_id` (`user_id`),
+  KEY `idx_orders_status_id` (`status_id`),
+  CONSTRAINT `fk_orders_status` FOREIGN KEY (`status_id`) REFERENCES `order_status` (`status_id`),
+  CONSTRAINT `fk_orders_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `order_items`
+-- --------------------------------------------------------
+CREATE TABLE `order_items` (
+  `order_item_id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `order_id` bigint(20) NOT NULL,
+  `menu_item_id` bigint(20) NOT NULL,
+  `quantity` int(11) NOT NULL,
+  `menu_item_name_at_purchase` varchar(150) NOT NULL,
+  `price_at_purchase` decimal(10,2) NOT NULL,
+  `special_instructions` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`order_item_id`),
+  KEY `idx_order_items_order_id` (`order_id`),
+  KEY `idx_order_items_menu_item_id` (`menu_item_id`),
+  CONSTRAINT `fk_order_items_menu_item` FOREIGN KEY (`menu_item_id`) REFERENCES `menu_items` (`menu_item_id`),
+  CONSTRAINT `fk_order_items_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`order_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `order_item_modifiers`
+-- --------------------------------------------------------
+CREATE TABLE `order_item_modifiers` (
+  `order_item_modifier_id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `order_item_id` bigint(20) NOT NULL,
+  `modifier_id` bigint(20) NOT NULL,
+  `modifier_name_at_purchase` varchar(150) NOT NULL,
+  `price_at_purchase` decimal(10,2) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`order_item_modifier_id`),
+  CONSTRAINT `fk_oim_modifier` FOREIGN KEY (`modifier_id`) REFERENCES `modifiers` (`modifier_id`),
+  CONSTRAINT `fk_oim_order_item` FOREIGN KEY (`order_item_id`) REFERENCES `order_items` (`order_item_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `order_status_history`
+-- --------------------------------------------------------
+CREATE TABLE `order_status_history` (
+  `status_history_id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `order_id` bigint(20) NOT NULL,
+  `status_id` bigint(20) NOT NULL,
+  `changed_by_user_id` bigint(20) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`status_history_id`),
+  KEY `idx_status_history_order_id` (`order_id`),
+  CONSTRAINT `fk_osh_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`order_id`),
+  CONSTRAINT `fk_osh_status` FOREIGN KEY (`status_id`) REFERENCES `order_status` (`status_id`),
+  CONSTRAINT `fk_osh_user` FOREIGN KEY (`changed_by_user_id`) REFERENCES `users` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Table structure for table `notifications`
+-- --------------------------------------------------------
+CREATE TABLE `notifications` (
+  `notification_id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `user_id` bigint(20) NOT NULL,
+  `order_id` bigint(20) NOT NULL,
+  `type` varchar(50) NOT NULL,
+  `title` varchar(50) NOT NULL,
+  `message` text NOT NULL,
+  `channel` varchar(50) NOT NULL,
+  `delivery_status` varchar(50) NOT NULL,
+  `is_read` tinyint(1) DEFAULT 0,
+  `read_at` timestamp NULL DEFAULT NULL,
+  `sent_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`notification_id`),
+  KEY `idx_notifications_user_id` (`user_id`),
+  KEY `idx_notifications_order_id` (`order_id`),
+  CONSTRAINT `fk_notifications_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`order_id`),
+  CONSTRAINT `fk_notifications_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+COMMIT;

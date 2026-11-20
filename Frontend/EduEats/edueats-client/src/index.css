@@ -1,0 +1,118 @@
+/* src/index.css - EduEats student app
+   Colours and fonts match the staff app (edueats-staff) */
+
+:root {
+  --navy: #173563;
+  --indigo: #4f46e5;
+  --indigo-dark: #4338ca;
+  --indigo-light: #e0e7ff;
+  --bg: #f4f7fb;
+  --card: #ffffff;
+  --text: #1f2937;
+  --text-strong: #334155;
+  --text-muted: #64748b;
+  --text-faint: #94a3b8;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --error: #b91c1c;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  transition: opacity 0.2s ease, background 0.2s ease;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+/* FIX: long text (notes, options, names) wraps instead of pushing the page sideways */
+p, small, li, td, strong, em, label {
+  overflow-wrap: anywhere;
+}
+
+/* =========================
+   NEW: iPhone / Safari fixes (Nathan: "the app doesn't display well on Apple")
+========================= */
+
+/* Safari makes text bigger by itself in landscape - keep our sizes */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Nothing can push the page wider than the screen (no sideways scroll).
+   "clip" doesn't break sticky headers; older Safari falls back to "hidden". */
+html,
+body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+@supports not (overflow: clip) {
+  html,
+  body {
+    overflow-x: hidden;
+  }
+}
+
+/* Pictures and media never wider than their box */
+img,
+video,
+svg {
+  max-width: 100%;
+}
+
+/* iPhone zooms into any text box with text smaller than 16px and then the
+   page stays zoomed in and scrolls sideways - 16px on phones stops that */
+@media (max-width: 700px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Full-height pages use the visible screen height on iPhone
+   (100vh includes the part hidden behind Safari's address bar) */
+@supports (height: 100dvh) {
+  #root {
+    min-height: 100dvh;
+  }
+}
+
+/* no grey flash when tapping buttons on iPhone */
+button,
+a,
+label {
+  -webkit-tap-highlight-color: transparent;
+}

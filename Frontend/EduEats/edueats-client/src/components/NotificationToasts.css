@@ -1,0 +1,61 @@
+/* src/components/NotificationToasts.css */
+.notify-toasts {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  z-index: 95;
+  width: min(480px, calc(100% - 24px));
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.notify-toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #1e2b55;
+  color: white;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.3);
+  touch-action: pan-y;
+  user-select: none;
+  animation: notifyToastIn 0.25s ease-out;
+}
+
+.notify-toast-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.notify-toast-text span {
+  color: #cbd5e1;
+}
+
+.notify-toast-close {
+  border: none;
+  background: transparent;
+  color: #cbd5e1;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+@keyframes notifyToastIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notify-toast { animation: none; }
+}

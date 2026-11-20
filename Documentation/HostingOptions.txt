@@ -1,0 +1,969 @@
+==================================================
+RECOMMENDATION FOR THE CURRENT CAFFEVOS PROJECT
+===============================================
+
+For the current stage of Caffevos, I recommend:
+
+```
+USE YOUR LAPTOP AS THE SERVER
++ RUN SPRING BOOT ON THE LAPTOP
++ RUN MARIADB ON THE LAPTOP
++ CONNECT USERS THROUGH THE SAME WI-FI/LAN
++ MOVE TO PUBLIC INTERNET HOSTING ONLY IF NEEDED
+```
+
+## WHY THIS IS THE BEST FIT RIGHT NOW
+
+Your current system is already working with:
+
+* Spring Boot
+* MariaDB
+* REST APIs
+* JWT authentication
+* WebSockets/STOMP
+* PWA frontend
+* Admin/staff dashboard
+* Working cafeteriadb database
+
+Your automated tests are also passing.
+
+Because of this, moving the database or backend to the cloud right now would introduce
+additional work without being necessary for the core project.
+
+Using the laptop as the server allows you to keep the existing architecture.
+
+## RECOMMENDED ARCHITECTURE
+
+For development and testing:
+
+```
+CUSTOMER PHONES
+      |
+   WI-FI
+      |
+      v
+YOUR LAPTOP
++----------------------+
+| React/PWA             |
+| Spring Boot           |
+| WebSockets            |
+| MariaDB               |
++----------------------+
+```
+
+The phones would access the laptop using its local IP.
+
+Example:
+
+```
+http://192.168.1.100:8080
+```
+
+IMPORTANT:
+
+The phones should NOT connect directly to MariaDB.
+
+Instead:
+
+```
+PHONE
+  |
+  v
+SPRING BOOT
+  |
+  v
+MARIADB
+```
+
+## IMPLEMENTATION ORDER
+
+Do not start with public internet hosting.
+
+First complete these steps:
+
+1. Make the application work normally on localhost.
+
+2. Confirm MariaDB and cafeteriadb are working.
+
+3. Confirm Spring Boot is working.
+
+4. Confirm the PWA works.
+
+5. Confirm the admin dashboard works.
+
+6. Confirm WebSockets/live order updates work.
+
+7. Configure Spring Boot to accept LAN connections.
+
+8. Find the laptop's local IP using:
+
+   ```
+   ipconfig
+   ```
+
+9. Connect a phone to the same Wi-Fi.
+
+10. Test the PWA/API from the phone using the laptop's IP.
+
+11. Test customer ordering from the phone.
+
+12. Test the staff dashboard from another device.
+
+13. Test multiple users placing orders at the same time.
+
+14. Test the live order-status updates.
+
+15. Configure Windows Firewall if required.
+
+## AFTER THAT
+
+Once the local network version works, decide whether public internet access is
+actually required.
+
+If the project only needs to be demonstrated at campus:
+
+```
+STOP HERE.
+```
+
+The laptop/local-server approach is sufficient.
+
+## IF YOU NEED INTERNET ACCESS
+
+Then keep the same laptop/server architecture initially:
+
+```
+INTERNET
+    |
+    v
+ROUTER
+    |
+    v
+YOUR LAPTOP
+    |
+    +-- Spring Boot
+    |
+    +-- MariaDB
+```
+
+At that point, add:
+
+* Public internet access
+* HTTPS
+* Domain name
+* Router configuration
+* Firewall configuration
+* Secure WebSocket configuration
+* Production CORS configuration
+
+Do NOT expose MariaDB directly.
+
+## WHEN TO MOVE TO THE CLOUD
+
+Move to cloud hosting when one or more of these becomes important:
+
+* Caffevos must work when your laptop is switched off.
+* Caffevos needs to run 24/7.
+* Users need access from anywhere.
+* The project is being used as a real cafeteria system.
+* You need better reliability.
+* Multiple staff members need access independently of your laptop.
+* You want a permanent public URL.
+
+At that point, the architecture should become:
+
+```
+USERS
+  |
+  v
+CLOUD PWA
+  |
+  v
+CLOUD SPRING BOOT
+  |
+  v
+CLOUD DATABASE
+```
+
+## FINAL RECOMMENDATION
+
+For the CURRENT student/project stage:
+
+```
+★ RECOMMENDED:
+  LAPTOP + SPRING BOOT + MARIADB + LOCAL WI-FI
+
+★ NEXT STEP:
+  Test the complete system from multiple phones.
+
+★ IF A PUBLIC DEMO IS REQUIRED:
+  Make the laptop temporarily accessible over the internet.
+
+★ LONG-TERM:
+  Move the backend/database to a proper server or cloud environment.
+```
+
+This approach keeps Caffevos simple, avoids unnecessary database migration,
+uses the infrastructure that is already working, and lets you focus on
+finishing and testing the actual application before dealing with cloud
+deployment.
+
+
+CAFFEVOS HOSTING OPTIONS
+
+==================================================
+CURRENT CAFFEVOS SETUP
+==================================================
+
+Current application:
+
+- PWA / frontend
+- Spring Boot backend
+- REST APIs
+- WebSockets / STOMP
+- MariaDB database
+- Admin/staff dashboard
+- Database: cafeteriadb
+- Backend: Spring Boot on port 8080
+
+Important:
+MariaDB should NOT be exposed directly to the internet.
+
+Users should communicate with Spring Boot, and Spring Boot communicates with MariaDB.
+
+
+==================================================
+OPTION 1 — LAPTOP + SAME WI-FI
+==================================================
+
+Your laptop acts as the server.
+
+Architecture:
+
+    Phones / PCs
+         |
+       Wi-Fi
+         |
+         v
+    YOUR LAPTOP
+    ├── PWA
+    ├── Spring Boot
+    └── MariaDB
+
+Example:
+
+    http://192.168.1.100:8080
+
+BEST FOR:
+
+- Development
+- Testing
+- Student demonstrations
+- Campus/local network
+- Testing multiple phones
+
+ADVANTAGES:
+
+- Free
+- Simple
+- No database migration
+- Uses existing MariaDB
+- Easy to debug
+
+DISADVANTAGES:
+
+- Users must be on the same Wi-Fi/network
+- Laptop must remain on
+- Laptop must remain connected
+- Not accessible from outside the network
+- HTTPS/PWA setup can be more complicated
+
+IMPLEMENTATION:
+
+1. Run:
+
+       ipconfig
+
+2. Find the laptop's Wi-Fi IPv4 address.
+
+3. Add to Spring Boot if required:
+
+       server.address=0.0.0.0
+
+4. Start MariaDB/XAMPP.
+
+5. Start Spring Boot.
+
+6. Test:
+
+       http://localhost:8080
+
+7. From another device on the same Wi-Fi:
+
+       http://192.168.1.100:8080
+
+8. Allow TCP port 8080 through Windows Firewall if necessary.
+
+9. Change the frontend API URL from localhost to the laptop's IP.
+
+10. Change the WebSocket URL similarly.
+
+11. Keep MariaDB private.
+
+
+==================================================
+OPTION 2 — LAPTOP AS PUBLIC INTERNET SERVER
+==================================================
+
+Your laptop remains the actual server, but users can connect from anywhere.
+
+Architecture:
+
+    INTERNET
+        |
+        v
+      ROUTER
+        |
+        v
+    YOUR LAPTOP
+        |
+        ├── Spring Boot
+        └── MariaDB
+
+Example:
+
+    https://caffevos.example.com
+
+BEST FOR:
+
+- Public project demonstrations
+- Testing with users outside the network
+- Keeping existing MariaDB
+- Avoiding database migration
+
+ADVANTAGES:
+
+- Laptop remains the server
+- Existing database remains
+- No cloud database required
+- Full control
+- Potentially very cheap
+
+DISADVANTAGES:
+
+- Laptop must stay on
+- Internet must stay connected
+- Router configuration required
+- ISP may use CGNAT
+- Security is more important
+- Public IP may change
+- HTTPS needs to be configured
+- Laptop failure takes the system offline
+
+IMPLEMENTATION:
+
+1. Get the local laptop IP using:
+
+       ipconfig
+
+2. Configure Spring Boot:
+
+       server.address=0.0.0.0
+
+3. Configure Windows Firewall.
+
+4. Configure router port forwarding.
+
+5. Check whether the ISP allows incoming connections.
+
+6. Check for CGNAT if port forwarding doesn't work.
+
+7. Get a domain if desired.
+
+8. Configure HTTPS.
+
+9. Point the frontend to the public API.
+
+10. Configure the WebSocket endpoint.
+
+11. Test using mobile data rather than the same Wi-Fi.
+
+12. NEVER expose MariaDB port 3306 publicly.
+
+The desired architecture is:
+
+    INTERNET
+       |
+       v
+    SPRING BOOT
+       |
+       v
+    MARIADB
+
+
+==================================================
+OPTION 3 — CLOUD FRONTEND + LAPTOP BACKEND
+==================================================
+
+The frontend is online while your laptop runs the backend/database.
+
+Architecture:
+
+    USERS
+      |
+      v
+    CLOUD PWA
+      |
+      v
+    YOUR LAPTOP
+      ├── Spring Boot
+      └── MariaDB
+
+ADVANTAGES:
+
+- Public frontend URL
+- Existing database can remain
+- No database migration
+
+DISADVANTAGES:
+
+- Laptop still needs to be running
+- Laptop still needs internet
+- Backend still needs public access
+- More complicated than keeping everything together
+
+IMPLEMENTATION:
+
+1. Build the PWA.
+
+2. Deploy the frontend.
+
+3. Make Spring Boot publicly accessible.
+
+4. Configure HTTPS.
+
+5. Configure WebSockets.
+
+6. Set the frontend API URL to the public backend URL.
+
+7. Test login, menu, checkout, orders, dashboard and live updates.
+
+
+==================================================
+OPTION 4 — FULL CLOUD HOSTING
+==================================================
+
+Everything is hosted online.
+
+Architecture:
+
+    USERS
+      |
+      v
+    CLOUD PWA
+      |
+      v
+    CLOUD SPRING BOOT
+      |
+      v
+    CLOUD DATABASE
+
+Possible services:
+
+Frontend:
+- Vercel
+- Netlify
+- Cloudflare Pages
+
+Backend:
+- Render
+- Railway
+- Cloud VM
+
+Database:
+- Managed PostgreSQL
+- Managed MySQL/MariaDB
+- Cloud VM running MariaDB
+
+ADVANTAGES:
+
+- Laptop does not need to be running
+- Accessible from anywhere
+- HTTPS is easier
+- Better suited for permanent deployment
+- Stable public URL
+
+DISADVANTAGES:
+
+- More setup
+- Free tiers have limitations
+- Some services sleep/pause
+- Some database providers require PostgreSQL
+- Database migration may be required
+- More cloud configuration
+
+IMPLEMENTATION:
+
+1. Build the PWA:
+
+       npm run build
+
+2. Deploy frontend.
+
+3. Choose backend hosting.
+
+4. Choose database hosting.
+
+5. Configure production environment variables:
+
+       DB_URL
+       DB_USERNAME
+       DB_PASSWORD
+       JWT_SECRET
+
+6. If necessary, migrate MariaDB to PostgreSQL.
+
+7. Import the database.
+
+8. Deploy Spring Boot.
+
+9. Configure HTTPS.
+
+10. Configure WebSockets.
+
+11. Change frontend API URL.
+
+12. Test the entire application.
+
+
+==================================================
+OPTION 5 — CLOUD VPS
+==================================================
+
+Rent a virtual server and run the application yourself.
+
+Architecture:
+
+    USERS
+      |
+      v
+    INTERNET
+      |
+      v
+    CLOUD VPS
+    ├── PWA
+    ├── Spring Boot
+    └── MariaDB
+
+Possible providers include:
+
+- AWS
+- Azure
+- DigitalOcean
+- Hetzner
+- Oracle Cloud
+
+ADVANTAGES:
+
+- Full control
+- Public IP
+- Can run Spring Boot
+- Can run MariaDB
+- No MariaDB → PostgreSQL migration required
+- Laptop does not need to stay on
+
+DISADVANTAGES:
+
+- More server administration
+- Linux knowledge may be required
+- Security is your responsibility
+- Some providers charge
+- Requires deployment/configuration
+
+IMPLEMENTATION:
+
+1. Create a VPS.
+
+2. Install Java.
+
+3. Install MariaDB.
+
+4. Restore cafeteriadb from your SQL dump.
+
+5. Deploy Spring Boot.
+
+6. Configure environment variables.
+
+7. Configure firewall.
+
+8. Configure HTTPS.
+
+9. Deploy/build the PWA.
+
+10. Configure WebSockets.
+
+11. Point the frontend to the VPS.
+
+12. Test the complete system.
+
+
+==================================================
+OPTION 6 — DEDICATED CAMPUS PC / MINI PC
+==================================================
+
+Use a dedicated computer as the server instead of your personal laptop.
+
+Architecture:
+
+    CAMPUS WI-FI
+         |
+         v
+    DEDICATED SERVER
+       ├── Spring Boot
+       └── MariaDB
+
+BEST FOR:
+
+A cafeteria system operating primarily on the campus network.
+
+ADVANTAGES:
+
+- Can remain powered on
+- Keeps existing MariaDB
+- No database migration
+- Doesn't depend on your personal laptop
+- Cheap if hardware is available
+
+DISADVANTAGES:
+
+- Still depends on campus network
+- Hardware failure can stop the system
+- Requires maintenance
+- Internet access requires additional configuration
+
+IMPLEMENTATION:
+
+1. Obtain a dedicated PC/mini-PC.
+
+2. Install Java.
+
+3. Install MariaDB/XAMPP.
+
+4. Restore cafeteriadb.
+
+5. Deploy Spring Boot.
+
+6. Give the server a fixed/reserved IP.
+
+7. Configure firewall.
+
+8. Make the PWA available on the campus network.
+
+9. Configure WebSockets.
+
+10. Schedule database backups.
+
+
+==================================================
+OPTION 7 — CAMPUS SERVER
+==================================================
+
+If Eduvos provides access to a server, Caffevos could potentially run there.
+
+Architecture:
+
+    CAMPUS NETWORK
+         |
+         v
+    CAMPUS SERVER
+       ├── Spring Boot
+       └── MariaDB
+
+ADVANTAGES:
+
+- Permanent infrastructure
+- Doesn't depend on your laptop
+- Good local network performance
+- Existing MariaDB can potentially remain
+
+DISADVANTAGES:
+
+- Depends on whether Eduvos allows it
+- IT/network configuration may be required
+- You may not have administrator access
+- Internet/public access depends on campus infrastructure
+
+
+==================================================
+OPTION 8 — LOCAL SERVER + CLOUD BACKUPS
+==================================================
+
+Application stays local but the database is backed up separately.
+
+Architecture:
+
+    USERS
+      |
+      v
+    LOCAL SERVER
+      |
+      v
+    MARIADB
+      |
+      v
+    AUTOMATIC BACKUP
+      |
+      v
+    CLOUD STORAGE
+
+ADVANTAGES:
+
+- Cheap
+- Protects against database loss
+- Keeps current architecture
+- Easy to restore
+
+DISADVANTAGES:
+
+- Doesn't solve server downtime
+- Application still depends on local server
+- Requires backup management
+
+IMPLEMENTATION:
+
+1. Keep current MariaDB.
+
+2. Regularly export cafeteriadb.
+
+3. Store SQL backups separately.
+
+4. Keep multiple backup versions.
+
+5. Test restoring backups.
+
+
+==================================================
+OPTION 9 — HYBRID CLOUD
+==================================================
+
+Some components run locally and others run in the cloud.
+
+Example:
+
+    USERS
+      |
+      v
+    CLOUD PWA
+      |
+      v
+    CLOUD SPRING BOOT
+      |
+      v
+    DATABASE
+
+Your laptop remains the development/testing environment.
+
+This is useful when gradually moving Caffevos from development into production.
+
+
+==================================================
+QUICK COMPARISON
+==================================================
+
+OPTION                         COST       COMPLEXITY   LAPTOP REQUIRED
+----------------------------------------------------------------------
+Laptop + same Wi-Fi            Free       Low          Yes
+Laptop + public internet       Low        Medium       Yes
+Cloud frontend + laptop API    Low        Medium       Yes
+Full cloud                     Free/Paid  Medium/High  No
+Cloud VPS                      Low/Paid   Medium/High  No
+Dedicated campus PC            Low        Medium       No
+Campus server                  Depends    Medium       No
+Local + cloud backups          Low        Low          Yes
+
+
+==================================================
+RECOMMENDATION FOR CURRENT CAFFEVOS
+==================================================
+
+For the CURRENT student/project stage, I recommend:
+
+    LAPTOP
+      +
+    SPRING BOOT
+      +
+    MARIADB
+      +
+    SAME-WI-FI TESTING
+
+
+WHY:
+
+Your current system already has:
+
+- Working Spring Boot backend
+- Working MariaDB
+- Working cafeteriadb database
+- REST APIs
+- JWT authentication
+- WebSockets
+- PWA
+- Admin dashboard
+- Automated tests passing
+
+There is no need to introduce cloud infrastructure or database migration
+while you are still developing and testing the core application.
+
+
+RECOMMENDED DEVELOPMENT PATH
+----------------------------
+
+STAGE 1:
+
+    LOCAL DEVELOPMENT
+
+    PWA
+    Spring Boot
+    MariaDB
+
+    ↓
+
+STAGE 2:
+
+    SAME-WI-FI TESTING
+
+    Phones
+       ↓
+    Laptop
+       ↓
+    Spring Boot
+       ↓
+    MariaDB
+
+    ↓
+
+STAGE 3:
+
+    IF PUBLIC ACCESS IS REQUIRED
+
+    Internet
+       ↓
+    Router
+       ↓
+    Laptop
+       ↓
+    Spring Boot
+       ↓
+    MariaDB
+
+    ↓
+
+STAGE 4:
+
+    IF CAFFEVOS NEEDS TO RUN PERMANENTLY
+
+    Cloud PWA
+       ↓
+    Cloud Spring Boot
+       ↓
+    Cloud Database
+
+
+==================================================
+WHEN TO CHOOSE EACH OPTION
+==================================================
+
+IF you only need campus/local testing:
+
+    Choose OPTION 1.
+
+IF you need people outside the Wi-Fi to access your project temporarily:
+
+    Choose OPTION 2.
+
+IF you want the frontend online but want to keep your laptop backend/database:
+
+    Choose OPTION 3.
+
+IF you want a proper public application without depending on your laptop:
+
+    Choose OPTION 4.
+
+IF you want full control while keeping MariaDB:
+
+    Choose OPTION 5.
+
+IF the cafeteria has a computer that can stay on permanently:
+
+    Choose OPTION 6.
+
+IF Eduvos offers server infrastructure:
+
+    Investigate OPTION 7.
+
+IF you want additional protection against database loss:
+
+    Add OPTION 8 regardless of the main hosting method.
+
+
+==================================================
+IMPORTANT DATABASE RULE
+==================================================
+
+Never expose:
+
+    MariaDB port 3306
+
+to the public internet.
+
+The correct architecture is:
+
+    USER
+      |
+      v
+    SPRING BOOT
+      |
+      v
+    MARIADB
+
+
+==================================================
+CURRENT DATABASE BACKUP
+==================================================
+
+You currently have:
+
+    cafeteriadb
+
+You also have the SQL dump used to restore it.
+
+KEEP THE SQL DUMP.
+
+You also have the old broken_data backup from the previous MariaDB problem.
+
+Keep it for now as an emergency backup.
+
+Do NOT copy the old broken MariaDB physical data directory into the new
+XAMPP installation.
+
+The restored SQL database is the current working database.
+
+
+==================================================
+FINAL RECOMMENDATION
+==================================================
+
+For Caffevos RIGHT NOW:
+
+    1. Finish development locally.
+    2. Run the complete system on your laptop.
+    3. Test it from multiple phones over Wi-Fi.
+    4. Test customer ordering and the admin dashboard.
+    5. Test WebSocket live order updates.
+    6. Only then decide whether public internet access is necessary.
+    7. If public access is needed temporarily, consider laptop hosting.
+    8. If Caffevos needs to run permanently, move to a cloud VPS or proper
+       cloud deployment.
+
+This avoids unnecessary complexity and lets you keep your existing
+Spring Boot + MariaDB architecture.

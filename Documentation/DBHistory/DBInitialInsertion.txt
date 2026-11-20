@@ -1,0 +1,361 @@
+-- ============================================================
+-- CAFETERIA ORDERING DATABASE
+-- MySQL 8.x (XAMPP)
+-- ============================================================
+
+DROP DATABASE IF EXISTS CafeteriaDB;
+CREATE DATABASE CafeteriaDB
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
+
+USE CafeteriaDB;
+
+-- ============================================================
+-- ROLES
+-- ============================================================
+
+CREATE TABLE Roles (
+    RoleID BIGINT AUTO_INCREMENT PRIMARY KEY,
+    RoleName VARCHAR(50) NOT NULL UNIQUE,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- ============================================================
+-- USERS
+-- ============================================================
+
+CREATE TABLE Users (
+    UserID BIGINT AUTO_INCREMENT PRIMARY KEY,
+    CustomerCode VARCHAR(50) UNIQUE NULL,
+    FirstName VARCHAR(100) NOT NULL,
+    LastName VARCHAR(100) NOT NULL,
+    Email VARCHAR(255) NOT NULL UNIQUE,
+    PasswordHash VARCHAR(255) NOT NULL,
+    RoleID BIGINT NOT NULL,
+    Active BOOLEAN DEFAULT TRUE,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT FK_Users_Roles
+        FOREIGN KEY (RoleID)
+        REFERENCES Roles(RoleID)
+);
+
+-- ============================================================
+-- CATEGORIES
+-- ============================================================
+
+CREATE TABLE Categories (
+    CategoryID BIGINT AUTO_INCREMENT PRIMARY KEY,
+    CategoryName VARCHAR(100) NOT NULL UNIQUE,
+    DisplayOrder INT DEFAULT 0,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- ============================================================
+-- MENU ITEMS
+-- ============================================================
+
+CREATE TABLE MenuItems (
+    MenuItemID BIGINT AUTO_INCREMENT PRIMARY KEY,
+    CategoryID BIGINT NOT NULL,
+    Name VARCHAR(150) NOT NULL,
+    Description TEXT,
+    Price DECIMAL(10,2) NOT NULL,
+    Available BOOLEAN DEFAULT TRUE,
+    ImagePath VARCHAR(255),
+    DisplayOrder INT DEFAULT 0,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT FK_MenuItems_Categories
+        FOREIGN KEY (CategoryID)
+        REFERENCES Categories(CategoryID)
+);
+
+-- ============================================================
+-- ORDER STATUS
+-- ============================================================
+
+CREATE TABLE OrderStatus (
+    StatusID BIGINT AUTO_INCREMENT PRIMARY KEY,
+    StatusName VARCHAR(50) NOT NULL UNIQUE,
+    SortOrder INT DEFAULT 0,
+    IsFinal BOOLEAN DEFAULT FALSE,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- ============================================================
+-- ORDERS
+-- ============================================================
+
+CREATE TABLE Orders (
+    OrderID BIGINT AUTO_INCREMENT PRIMARY KEY,
+    UserID BIGINT NOT NULL,
+    StatusID BIGINT NOT NULL,
+    CustomerOrderNumber VARCHAR(20),
+    RequestedCollectionTime TIMESTAMP NULL,
+    CollectedAt TIMESTAMP NULL,
+    TotalPrice DECIMAL(10,2) NOT NULL,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT UQ_CustomerOrderNumber
+        UNIQUE (CustomerOrderNumber),
+
+    CONSTRAINT FK_Orders_Users
+        FOREIGN KEY (UserID)
+        REFERENCES Users(UserID),
+
+    CONSTRAINT FK_Orders_Status
+        FOREIGN KEY (StatusID)
+        REFERENCES OrderStatus(StatusID)
+);
+
+-- ============================================================
+-- MODIFIER GROUPS
+-- ============================================================
+
+CREATE TABLE ModifierGroups (
+    ModifierGroupID BIGINT AUTO_INCREMENT PRIMARY KEY,
+    Name VARCHAR(100) NOT NULL,
+    MinimumSelections INT DEFAULT 0,
+    MaximumSelections INT DEFAULT 1,
+    Available BOOLEAN DEFAULT TRUE,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT CHK_MinSelections
+        CHECK (MinimumSelections >= 0),
+
+    CONSTRAINT CHK_MaxSelections
+        CHECK (MaximumSelections >= MinimumSelections)
+);
+
+-- ============================================================
+-- MODIFIERS
+-- ============================================================
+
+CREATE TABLE Modifiers (
+    ModifierID BIGINT AUTO_INCREMENT PRIMARY KEY,
+    ModifierGroupID BIGINT NOT NULL,
+    Name VARCHAR(100) NOT NULL,
+    AddedPrice DECIMAL(10,2) DEFAULT 0.00,
+    Available BOOLEAN DEFAULT TRUE,
+    DisplayOrder INT DEFAULT 0,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT FK_Modifiers_Groups
+        FOREIGN KEY (ModifierGroupID)
+        REFERENCES ModifierGroups(ModifierGroupID)
+);
+
+-- ============================================================
+-- CATEGORY DEFAULT GROUPS
+-- ============================================================
+
+CREATE TABLE CategoryDefaultGroups (
+    CategoryDefaultGroupID BIGINT AUTO_INCREMENT PRIMARY KEY,
+    CategoryID BIGINT NOT NULL,
+    ModifierGroupID BIGINT NOT NULL,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT FK_CategoryDefaultGroups_Category
+        FOREIGN KEY (CategoryID)
+        REFERENCES Categories(CategoryID),
+
+    CONSTRAINT FK_CategoryDefaultGroups_Group
+        FOREIGN KEY (ModifierGroupID)
+        REFERENCES ModifierGroups(ModifierGroupID),
+
+    CONSTRAINT UQ_Category_Group
+        UNIQUE (CategoryID, ModifierGroupID)
+);
+
+-- ============================================================
+-- MENU ITEM MODIFIER GROUPS
+-- ============================================================
+
+CREATE TABLE MenuItemModifierGroups (
+    MenuItemID BIGINT NOT NULL,
+    ModifierGroupID BIGINT NOT NULL,
+    DisplayOrder INT DEFAULT 0,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (MenuItemID, ModifierGroupID),
+
+    CONSTRAINT FK_MenuItemModifierGroups_MenuItem
+        FOREIGN KEY (MenuItemID)
+        REFERENCES MenuItems(MenuItemID),
+
+    CONSTRAINT FK_MenuItemModifierGroups_Group
+        FOREIGN KEY (ModifierGroupID)
+        REFERENCES ModifierGroups(ModifierGroupID)
+);
+
+-- ============================================================
+-- ORDER ITEMS
+-- ============================================================
+
+CREATE TABLE OrderItems (
+    OrderItemID BIGINT AUTO_INCREMENT PRIMARY KEY,
+    OrderID BIGINT NOT NULL,
+    MenuItemID BIGINT NOT NULL,
+    Quantity INT NOT NULL,
+    MenuItemNameAtPurchase VARCHAR(150) NOT NULL,
+    PriceAtPurchase DECIMAL(10,2) NOT NULL,
+    SpecialInstructions VARCHAR(255) NULL,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UpdatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT CHK_OrderItemQuantity
+        CHECK (Quantity > 0),
+
+    CONSTRAINT FK_OrderItems_Order
+        FOREIGN KEY (OrderID)
+        REFERENCES Orders(OrderID),
+
+    CONSTRAINT FK_OrderItems_MenuItem
+        FOREIGN KEY (MenuItemID)
+        REFERENCES MenuItems(MenuItemID)
+);
+
+-- ============================================================
+-- ORDER ITEM MODIFIERS
+-- ============================================================
+
+CREATE TABLE OrderItemModifiers (
+    OrderItemModifierID BIGINT AUTO_INCREMENT PRIMARY KEY,
+    OrderItemID BIGINT NOT NULL,
+    ModifierID BIGINT NOT NULL,
+    ModifierNameAtPurchase VARCHAR(150) NOT NULL,
+    PriceAtPurchase DECIMAL(10,2) NOT NULL,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT FK_OrderItemModifiers_OrderItem
+        FOREIGN KEY (OrderItemID)
+        REFERENCES OrderItems(OrderItemID),
+
+    CONSTRAINT FK_OrderItemModifiers_Modifier
+        FOREIGN KEY (ModifierID)
+        REFERENCES Modifiers(ModifierID)
+);
+
+-- ============================================================
+-- ORDER STATUS HISTORY
+-- ============================================================
+
+CREATE TABLE OrderStatusHistory (
+    StatusHistoryID BIGINT AUTO_INCREMENT PRIMARY KEY,
+    OrderID BIGINT NOT NULL,
+    StatusID BIGINT NOT NULL,
+    ChangedByUserID BIGINT NULL,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT FK_OrderStatusHistory_Order
+        FOREIGN KEY (OrderID)
+        REFERENCES Orders(OrderID),
+
+    CONSTRAINT FK_OrderStatusHistory_Status
+        FOREIGN KEY (StatusID)
+        REFERENCES OrderStatus(StatusID),
+
+    CONSTRAINT FK_OrderStatusHistory_User
+        FOREIGN KEY (ChangedByUserID)
+        REFERENCES Users(UserID)
+);
+
+-- ============================================================
+-- NOTIFICATIONS
+-- ============================================================
+
+CREATE TABLE Notifications (
+    NotificationID BIGINT AUTO_INCREMENT PRIMARY KEY,
+    UserID BIGINT NOT NULL,
+    OrderID BIGINT NOT NULL,
+    Type VARCHAR(50) NOT NULL,
+    Title VARCHAR(50) NOT NULL,
+    Message TEXT NOT NULL,
+    Channel VARCHAR(50) NOT NULL,
+    DeliveryStatus VARCHAR(50) NOT NULL,
+    IsRead BOOLEAN DEFAULT FALSE,
+    ReadAt TIMESTAMP NULL,
+    SentAt TIMESTAMP NULL,
+    CreatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT FK_Notifications_User
+        FOREIGN KEY (UserID)
+        REFERENCES Users(UserID),
+
+    CONSTRAINT FK_Notifications_Order
+        FOREIGN KEY (OrderID)
+        REFERENCES Orders(OrderID)
+);
+
+-- ============================================================
+-- INDEXES
+-- ============================================================
+
+CREATE INDEX IDX_Users_RoleID
+    ON Users(RoleID);
+
+CREATE INDEX IDX_MenuItems_CategoryID
+    ON MenuItems(CategoryID);
+
+CREATE INDEX IDX_Orders_UserID
+    ON Orders(UserID);
+
+CREATE INDEX IDX_Orders_StatusID
+    ON Orders(StatusID);
+
+CREATE INDEX IDX_OrderItems_OrderID
+    ON OrderItems(OrderID);
+
+CREATE INDEX IDX_OrderItems_MenuItemID
+    ON OrderItems(MenuItemID);
+
+CREATE INDEX IDX_Modifiers_GroupID
+    ON Modifiers(ModifierGroupID);
+
+CREATE INDEX IDX_StatusHistory_OrderID
+    ON OrderStatusHistory(OrderID);
+
+CREATE INDEX IDX_Notifications_UserID
+    ON Notifications(UserID);
+
+CREATE INDEX IDX_Notifications_OrderID
+    ON Notifications(OrderID);
+
+-- ============================================================
+-- DEFAULT DATA
+-- ============================================================
+
+INSERT INTO Roles (RoleName) VALUES
+('Admin'),
+('Staff'),
+('Student');
+
+INSERT INTO OrderStatus (StatusName, SortOrder, IsFinal) VALUES
+('Submitted',1,FALSE),
+('Accepted',2,FALSE),
+('Preparing',3,FALSE),
+('Ready',4,FALSE),
+('Collected',5,TRUE),
+('Cancelled',6,TRUE);

@@ -1,0 +1,75 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: cafeteria-mysql
+    restart: always
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-cafeteriadb}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./Backend/cafeteriadb_docker.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - edueats-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-root}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./Backend
+    container_name: cafeteria-backend
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./logs:/app/logs
+    env_file:
+      - .env
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://cafeteria-mysql:3306/cafeteriadb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Africa/Johannesburg
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-root}
+      - TZ=Africa/Johannesburg
+      - APP_BASE_URL=http://localhost:8080
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
+    networks:
+      - edueats-net
+
+  edueats-client:
+    build:
+      context: ./frontend/edueats/edueats-client
+      dockerfile: Dockerfile
+    container_name: edueats-client
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    restart: always
+    networks:
+      - edueats-net
+
+  edueats-staff:
+    build:
+      context: ./frontend/edueats/edueats-staff
+      dockerfile: Dockerfile
+    container_name: edueats-staff
+    ports:
+      - "5174:80"
+    depends_on:
+      - backend
+    restart: always
+    networks:
+      - edueats-net
+
+volumes:
+  mysql_data:
+
+networks:
+  edueats-net:
+    driver: bridge

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <property name="LOG_DIR" value="logs"/>
+
+    <!-- General application logs -->
+    <appender name="APPLICATION_FILE"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/application.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/archive/application.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>14</maxHistory>
+            <totalSizeCap>200MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Order-related logs -->
+    <appender name="ORDERS_FILE"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/orders.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/archive/orders.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>14</maxHistory>
+            <totalSizeCap>200MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Errors and warnings -->
+    <appender name="ERRORS_FILE"
+              class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/errors.log</file>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>WARN</level>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/archive/errors.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>14</maxHistory>
+            <totalSizeCap>200MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Route OrderServiceImpl logs to orders.log -->
+    <logger name="org.example.cafeteria_ordering_backend.service.implementation.OrderServiceImpl"
+            level="INFO"
+            additivity="false">
+        <appender-ref ref="ORDERS_FILE"/>
+        <appender-ref ref="ERRORS_FILE"/>
+    </logger>
+
+    <!-- All other application logs -->
+    <logger name="org.example.cafeteria_ordering_backend"
+            level="INFO"
+            additivity="false">
+        <appender-ref ref="APPLICATION_FILE"/>
+        <appender-ref ref="ERRORS_FILE"/>
+    </logger>
+
+    <!-- Keep Spring and other framework logs in the general file -->
+    <root level="INFO">
+        <appender-ref ref="APPLICATION_FILE"/>
+        <appender-ref ref="ERRORS_FILE"/>
+    </root>
+
+</configuration>

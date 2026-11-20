@@ -1,0 +1,189 @@
+=========================================================================================================================================================================================
+DB Layout information
+=========================================================================================================================================================================================
+
+Users
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+	- UserID (PK)													BIGINT AUTO_INCREMENT
+	- CustomerCode VARCHAR UNIQUE NULLABLE *This is what is presented to the user*					VARCHAR(50) UNIQUE NULL
+	- FirstName													VARCHAR(100)
+	- LastName													VARCHAR(100)
+	- Email UNIQUE													VARCHAR(255) UNIQUE
+	- PasswordHash													VARCHAR(255)
+	- RoleID (FK)													BIGINT
+	- Active 													BOOLEAN DEFAULT TRUE
+	- CreatedAt													TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	- UpdatedAt													TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+
+=========================================================================================================================================================================================
+
+Roles
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+	- RoleID (PK)													BIGINT AUTO_INCREMENT
+	- RoleName													VARCHAR(50) UNIQUE
+	- CreatedAt													TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	- UpdatedAt													TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP	
+
+	*Examples include staff, students, admin*
+
+=========================================================================================================================================================================================
+Menu Items
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+	- MenuItemID (PK)												BIGINT AUTO_INCREMENT
+	- CategoryID (FK)												BIGINT
+	- Name														VARCHAR(150)
+	- Description													TEXT
+	- Price 													DECIMAL (10, 2)							
+	- Available *Must find out if meals differ over time, breakfast, lunch, supper*					BOOLEAN DEFAULT TRUE
+	- ImagePath													VARCHAR(255)
+	- DisplayOrder													INT DEFAULT 0
+	- CreatedAt													TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	- UpdatedAt													TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+
+=========================================================================================================================================================================================
+
+Orders
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+	- OrderID (PK)													BIGINT AUTO_INCREMENT
+	- UserID (FK)													BIGINT
+	- StatusID (FK)													BIGINT
+	- CustomerOrderNumber												VARCHAR(20) *Short code like 'A12'*
+	- RequestedCollectionTime											TIMESTAMP
+	- CollectedAt													TIMESTAMP NULL
+	- TotalPrice 													DECIMAL (10, 2)
+	- CreatedAt													TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	- UpdatedAt													TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+
+=========================================================================================================================================================================================
+
+OrderStatus
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+	- StatusID (PK)													BIGINT AUTO_INCREMENT
+	- StatusName *Submitted, Accepted, Preparing, Ready, Collected, Cancelled, etc*					VARCHAR(50)
+	- SortOrder *probablt wont use, but including it in case*							INT DEFAULT 0
+	- IsFinal 													BOOLEAN DEFAULT FALSE				
+	- CreatedAt													TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	- UpdatedAt													TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+
+=========================================================================================================================================================================================
+OrderItems
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+	- OrderItemID (PK)												BIGINT AUTO_INCREMENT
+	- OrderID (FK)													BIGINT
+	- MenuItemID (FK)												BIGINT
+	- Quantity													INT CHECK (Quantity > 0)
+	- MenuItemNameAtPurchase											VARCHAR(150)
+	- PriceAtPurchase *This is for storage in case prices change over time so orginal price is kept*		DECIMAL (10, 2)
+	- SpecialInstructions												VARCHAR(255) NULL
+	- CreatedAt													TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	- UpdatedAt													TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+
+=========================================================================================================================================================================================
+
+OrderItemModifiers
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+	- OrderItemModifierID (PK)											BIGINT AUTO_INCREMENT
+	- OrderItemID (FK)												BIGINT
+	- ModifierID (FK)												BIGINT
+	- ModifierNameAtPurchase											VARCHAR(150)
+	- PriceAtPurchase 												DECIMAL(10,2)
+	- CreatedAt													TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+=========================================================================================================================================================================================
+
+Categories
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+	- CategoryID (PK)												BIGINT AUTO_INCREMENT
+	- CategoryName													VARCHAR(100) UNIQUE
+	- DisplayOrder													INT DEFAULT 0
+	- CreatedAt													TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	- UpdatedAt													TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+
+	*Examples: Burgers, Coffee, milkshakes, smoothies*
+
+=========================================================================================================================================================================================
+
+CategoryDefaultGroups
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+	- CategoryDefaultGroupID (PK)											BIGINT AUTO_INCREMENT
+	- CategoryID (FK)												BIGINT
+	- ModifierGroupID (FK)												BIGINT
+	- CreatedAt													TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	- UpdatedAt													TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+
+	*Dashboard template only, creates a default product for staff to modify when adding new items*
+	UNIQUE(CategoryID, ModifierGroupID) *The two together must be unique*
+
+=========================================================================================================================================================================================
+
+MenuItemModifierGroups
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+	- MenuItemID (FK, Composite PK)											BIGINT
+	- ModifierGroupID (FK, Composite PK)										BIGINT
+	- DisplayOrder													INT DEFAULT 0
+	- CreatedAt													TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	- UpdatedAt													TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+
+	*Core rule table: Mobile app and springboot read this to see allowed customization for each item*
+
+=========================================================================================================================================================================================
+
+ModifierGroups
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+	- ModifierGroupID(PK)												BIGINT AUTO_INCREMENT
+	- Name														VARCHAR(100)
+	- MinimumSelections												INT DEFAULT 0 *e.g., 0 means optional customization*
+	- MaximumSelections												INT DEFAULT 1 *e.g., 1 means radio buttons (choose single option)*
+	- Available 													BOOLEAN DEFAULT TRUE
+	- CreatedAt													TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	- UpdatedAt													TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+
+	*Examples: burger toppings, sauces, drink size, Milk options*
+
+=========================================================================================================================================================================================
+
+Modifiers
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+	- ModifierID(PK)												BIGINT AUTO_INCREMENT
+	- ModifierGroupID(FK)												BIGINT
+	- Name														VARCHAR(100)
+	- AddedPrice 													DECIMAL(10, 2) DEFAULT 0.00
+	- Available 													BOOLEAN DEFAULT TRUE
+	- DisplayOrder													INT DEFAULT 0
+	- CreatedAt													TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	- UpdatedAt													TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP	
+
+=========================================================================================================================================================================================
+OrderStatusHistory
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+	- StatusHistoryID (PK)												BIGINT AUTO_INCREMENT
+	- OrderID (FK)													BIGINT
+	- StatusID (FK)													BIGINT
+	- ChangedByUserID (FK)												BIGINT NULLABLE
+	- CreatedAt													TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+=========================================================================================================================================================================================
+Notifications
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+	- NotificationID (PK)												BIGINT AUTO_INCREMENT
+	- UserID (FK)													BIGINT
+	- OrderID (FK)													BIGINT
+	- Type 														VARCHAR(50)
+	- Title														VARCHAR(50)
+	- Message													TEXT
+	- Channel													VARCHAR(50)
+	- DeliveryStatus												VARCHAR(50)
+	- IsRead													BOOLEAN DEFAULT FALSE
+	- ReadAt													TIMESTAMP NULL
+	- SentAt													TIMESTAMP NULL
+	- CreatedAt													TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+=========================================================================================================================================================================================

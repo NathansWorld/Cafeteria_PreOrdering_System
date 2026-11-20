@@ -1,0 +1,325 @@
+========================================================================
+CAFETERIA ORDERING BACKEND - API TESTING SUITE (WITH INSERT COMMANDS)
+========================================================================
+
+Use this file to test your Spring Boot endpoints. You can paste the
+GET URLs directly into your web browser, or run the Curl commands
+in your terminal (Git Bash, Command Prompt, or PowerShell).
+
+------------------------------------------------------------------------
+1. AUTHENTICATION & SESSION MANAGEMENT (JWT & BLACKLIST)
+------------------------------------------------------------------------
+
+[A] REGISTER A NEW USER (POST)
+- Note: Registers a user, hashes password via BCrypt, assigns default role, and returns JWT token.
+- Curl Command (Git Bash, macOS, Linux):
+curl -X POST http://localhost:8080/api/auth/register \
+     -H "Content-Type: application/json" \
+     -d "{\"firstName\":\"Charlie\",\"lastName\":\"Brown\",\"email\":\"charlie@campus.edu\",\"password\":\"securepassword123\"}"
+
+- Curl Command (Windows CMD):
+curl -X POST http://localhost:8080/api/auth/register -H "Content-Type: application/json" -d "{\"firstName\":\"Charlie\",\"lastName\":\"Brown\",\"email\":\"charlie@campus.edu\",\"password\":\"securepassword123\"}"
+
+- Curl Command (Windows PowerShell):
+curl.exe --% -X POST "http://localhost:8080/api/auth/register" -H "Content-Type: application/json" -d "{\"firstName\":\"Charlie\",\"lastName\":\"Brown\",\"email\":\"charlie@campus.edu\",\"password\":\"securepassword123\"}"
+
+
+[B] LOGIN / GENERATE JWT TOKEN (POST)
+- Note: Validates credentials and returns a Bearer JWT token valid for stateless requests.
+- Curl Command (Git Bash, macOS, Linux):
+curl -X POST http://localhost:8080/api/auth/login \
+     -H "Content-Type: application/json" \
+     -d "{\"email\":\"charlie@campus.edu\",\"password\":\"securepassword123\"}"
+
+- Curl Command (Windows CMD):
+curl -X POST http://localhost:8080/api/auth/login -H "Content-Type: application/json" -d "{\"email\":\"charlie@campus.edu\",\"password\":\"securepassword123\"}"
+
+- Curl Command (Windows PowerShell):
+curl.exe --% -X POST "http://localhost:8080/api/auth/login" -H "Content-Type: application/json" -d "{\"email\":\"charlie@campus.edu\",\"password\":\"securepassword123\"}"
+
+
+[C] GET CURRENT AUTHENTICATED USER PROFILE (GET)
+- Note: Pass the Bearer JWT token obtained from login. Expects HTTP 200 OK with UserProfileDTO.
+- Curl Command (Git Bash, macOS, Linux):
+curl -i -X GET http://localhost:8080/api/auth/me \
+     -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+
+- Curl Command (Windows CMD / PowerShell):
+curl.exe -i -X GET http://localhost:8080/api/auth/me -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+
+
+[D] LOGOUT / INVALIDATE JWT TOKEN (POST)
+- Note: Adds token to TokenBlacklistService to block subsequent usage immediately.
+- Curl Command (Git Bash, macOS, Linux):
+curl -i -X POST http://localhost:8080/api/auth/logout \
+     -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+
+- Curl Command (Windows CMD / PowerShell):
+curl.exe -i -X POST http://localhost:8080/api/auth/logout -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+
+
+[E] VERIFY BLACKLIST / RE-ATTEMPT PROFILE ACCESS (EXPECTS 401 UNAUTHORIZED)
+- Note: Re-running GET /api/auth/me with the logged-out token must be rejected by JwtAuthenticationFilter.
+- Curl Command (Git Bash, macOS, Linux):
+curl -i -X GET http://localhost:8080/api/auth/me \
+     -H "Authorization: Bearer YOUR_LOGGED_OUT_TOKEN_HERE"
+
+- Curl Command (Windows CMD / PowerShell):
+curl.exe -i -X GET http://localhost:8080/api/auth/me -H "Authorization: Bearer YOUR_LOGGED_OUT_TOKEN_HERE"
+
+
+------------------------------------------------------------------------
+2. ROLES
+------------------------------------------------------------------------
+
+[A] REGISTER A NEW ROLE (POST)
+- Curl Command (Git Bash, macOS, Linux):
+curl -X POST http://localhost:8080/api/roles -H "Content-Type: application/json" -d "{\"roleName\": \"Student\"}"
+
+- Curl Command (Windows PowerShell):
+curl.exe --% -X POST "http://localhost:8080/api/roles" -H "Content-Type: application/json" -d "{\"roleName\": \"Student\"}"
+
+[B] GET ALL ROLES (GET)
+- Browser URL: http://localhost:8080/api/roles
+- Curl Command:
+curl -X GET http://localhost:8080/api/roles
+
+
+------------------------------------------------------------------------
+3. USERS
+------------------------------------------------------------------------
+
+[A] REGISTER A NEW USER DIRECTLY (POST)
+- Note: Assumes Role ID 3 (Student) exists in your database
+- Curl Command (Git Bash, macOS, Linux):
+curl -X POST http://localhost:8080/api/users -H "Content-Type: application/json" -d "{\"customerCode\": \"STU12345\", \"firstName\": \"John\", \"lastName\": \"Doe\", \"email\": \"john.doe@campus.edu\", \"passwordHash\": \"hashed_password_here\", \"role\": {\"roleId\": 3}, \"active\": true}"
+
+- Curl Command (Windows PowerShell):
+curl.exe --% -X POST "http://localhost:8080/api/users" -H "Content-Type: application/json" -d "{\"customerCode\": \"STU12345\", \"firstName\": \"John\", \"lastName\": \"Doe\", \"email\": \"john.doe@campus.edu\", \"passwordHash\": \"hashed_password_here\", \"role\": {\"roleId\": 3}, \"active\": true}"
+
+[B] GET ALL REGISTERED USERS (GET)
+- Browser URL: http://localhost:8080/api/users
+- Curl Command:
+curl -X GET http://localhost:8080/api/users
+
+
+------------------------------------------------------------------------
+4. CATEGORIES
+------------------------------------------------------------------------
+
+[A] REGISTER A NEW CATEGORY (POST)
+- Curl Command (Git Bash, macOS, Linux):
+curl -X POST http://localhost:8080/api/categories -H "Content-Type: application/json" -d "{\"categoryName\": \"Desserts\", \"displayOrder\": 3}"
+
+- Curl Command (Windows PowerShell):
+curl.exe --% -X POST "http://localhost:8080/api/categories" -H "Content-Type: application/json" -d "{\"categoryName\": \"Desserts\", \"displayOrder\": 3}"
+
+[B] GET ALL CATEGORIES (GET)
+- Browser URL: http://localhost:8080/api/categories
+- Curl Command:
+curl -X GET http://localhost:8080/api/categories
+
+
+------------------------------------------------------------------------
+5. MENU ITEMS
+------------------------------------------------------------------------
+
+[A] REGISTER A NEW MENU ITEM (POST)
+- Note: Registers the item directly under Category ID 1
+- Curl Command (Git Bash, macOS, Linux):
+curl -X POST http://localhost:8080/api/menu-items/category/1 -H "Content-Type: application/json" -d "{\"name\": \"Spicy Chicken Burger\", \"description\": \"Crispy chicken breast with spicy mayo\", \"price\": 6.50, \"displayOrder\": 2}"
+
+- Curl Command (Windows PowerShell):
+curl.exe --% -X POST "http://localhost:8080/api/menu-items/category/1" -H "Content-Type: application/json" -d "{\"name\": \"Spicy Chicken Burger\", \"description\": \"Crispy chicken breast with spicy mayo\", \"price\": 6.50, \"displayOrder\": 2}"
+
+[B] GET ALL MENU ITEMS (GET)
+- Browser URL: http://localhost:8080/api/menu-items
+- Curl Command:
+curl -X GET http://localhost:8080/api/menu-items
+
+[C] GET A SINGLE MENU ITEM (GET)
+- Browser URL: http://localhost:8080/api/menu-items/1
+- Curl Command:
+curl -X GET http://localhost:8080/api/menu-items/1
+
+[D] GET MENU ITEMS BY CATEGORY (GET)
+- Browser URL: http://localhost:8080/api/menu-items/category/1
+- Curl Command:
+curl -X GET http://localhost:8080/api/menu-items/category/1
+
+
+------------------------------------------------------------------------
+6. MODIFIERS & CUSTOMIZATIONS
+------------------------------------------------------------------------
+
+[A] CREATE A MODIFIER GROUP (POST)
+- Curl Command (Git Bash, macOS, Linux):
+curl -X POST http://localhost:8080/api/modifier-groups -H "Content-Type: application/json" -d "{\"name\": \"Choose Your Sauce\", \"minSelections\": 0, \"maxSelections\": 1, \"available\": true}"
+
+- Curl Command (Windows PowerShell):
+curl.exe --% -X POST "http://localhost:8080/api/modifier-groups" -H "Content-Type: application/json" -d "{\"name\": \"Choose Your Sauce\", \"minSelections\": 0, \"maxSelections\": 1, \"available\": true}"
+
+[B] CREATE A MODIFIER (POST)
+- Note: Associates this modifier with Modifier Group ID 1
+- Curl Command (Git Bash, macOS, Linux):
+curl -X POST http://localhost:8080/api/modifiers -H "Content-Type: application/json" -d "{\"name\": \"BBQ Sauce\", \"priceModifier\": 0.00, \"available\": true, \"modifierGroup\": {\"id\": 1}}"
+
+- Curl Command (Windows PowerShell):
+curl.exe --% -X POST "http://localhost:8080/api/modifiers" -H "Content-Type: application/json" -d "{\"name\": \"BBQ Sauce\", \"priceModifier\": 0.00, \"available\": true, \"modifierGroup\": {\"id\": 1}}"
+
+[C] LINK MODIFIER GROUP TO MENU ITEM (POST)
+- Note: Associates Menu Item ID 1 with Modifier Group ID 1 and sets display order
+- Curl Command (Git Bash, macOS, Linux):
+curl -X POST http://localhost:8080/api/menu-items/1/modifier-groups/1 -H "Content-Type: application/json" -d "{\"displayOrder\": 1}"
+
+- Curl Command (Windows PowerShell):
+curl.exe --% -X POST "http://localhost:8080/api/menu-items/1/modifier-groups/1" -H "Content-Type: application/json" -d "{\"displayOrder\": 1}"
+
+[D] GET MENU ITEM CUSTOMIZATIONS (GET)
+- Browser URL: http://localhost:8080/api/menu-items/1/customizations
+- Curl Command:
+curl -X GET http://localhost:8080/api/menu-items/1/customizations
+
+
+------------------------------------------------------------------------
+7. ORDERS & CHECKOUT
+------------------------------------------------------------------------
+
+[A] CHECKOUT / PLACE A NEW ORDER (POST)
+- Note: Assumes User ID 1, Menu Item ID 1, and Modifiers 1 and 2 exist and are active.
+- Note: Uses clean OrderRequestDTO mapping. Ensure system time is between 08h00 and 15h30.
+
+- Curl Command (Git Bash, WSL, Linux, or macOS):
+curl -X POST http://localhost:8080/api/orders/checkout \
+     -H "Content-Type: application/json" \
+     -d '{"userId": 1, "items": [{"menuItemId": 1, "quantity": 2, "specialInstructions": "Well done please", "modifierIds": [1, 2]}]}'
+
+- Curl Command (Windows PowerShell):
+curl.exe --% -X POST "http://localhost:8080/api/orders/checkout" -H "Content-Type: application/json" -d "{\"userId\":1,\"items\":[{\"menuItemId\":1,\"quantity\":2,\"specialInstructions\":\"Well done please\",\"modifierIds\":[1,2]}]}"
+
+[B] GET ALL ORDERS (GET)
+- Note: Lists all submitted orders.
+- Browser URL: http://localhost:8080/api/orders
+- Curl Command:
+curl.exe http://localhost:8080/api/orders
+
+[C] GET ORDER DETAILS BY ID (GET)
+- Note: Retrieves full details of a specific order (e.g., Order ID 1).
+- Browser URL: http://localhost:8080/api/orders/1
+- Curl Command:
+curl.exe http://localhost:8080/api/orders/1
+
+[D] GET ORDERS FOR A SPECIFIC USER (GET)
+- Note: Retrieves chronological history (most recent first) for a specific User ID (e.g., User ID 1).
+- Browser URL: http://localhost:8080/api/orders/user/1
+- Curl Command:
+curl.exe http://localhost:8080/api/orders/user/1
+
+
+------------------------------------------------------------------------
+8. ORDER LIFECYCLE & STATUS CHANGES
+------------------------------------------------------------------------
+
+[A] UPDATE ORDER STATUS (PUT)
+- Note: Updates the status of a specific order (e.g., Order ID 1) to a valid database status (e.g., "Submitted", "Accepted", "Preparing", "Ready", "Collected", "Cancelled").
+- Important: This action also automatically logs a transition history audit entry into your database's `order_status_history` table.
+
+- Curl Command (Git Bash, WSL, Linux, or macOS):
+curl -X PUT http://localhost:8080/api/orders/1/status \
+     -H "Content-Type: application/json" \
+     -d '{"statusName": "Preparing"}'
+
+- Curl Command (Windows PowerShell):
+curl.exe --% -X PUT "http://localhost:8080/api/orders/1/status" -H "Content-Type: application/json" -d "{\"statusName\":\"Preparing\"}"
+
+[B] CANCEL ORDER (POST/PUT)
+- Note: Cancels a specific order (e.g., Order ID 1). Highly restricted.
+- Safety Rules: Will only succeed if the order's current status is "Submitted" or "Accepted". If the order is already "Preparing", "Ready for Collection", or "Completed", the API will reject this cancellation request with a 400 Bad Request.
+
+- Curl Command (Git Bash, WSL, Linux, or macOS):
+curl -X POST http://localhost:8080/api/orders/1/cancel
+
+- Curl Command (Windows PowerShell):
+curl.exe --% -X POST "http://localhost:8080/api/orders/1/cancel"
+
+
+------------------------------------------------------------------------
+9. KITCHEN ACTIVE ORDERS BOARD
+------------------------------------------------------------------------
+
+[A] GET ACTIVE KITCHEN ORDERS (GET)
+- Note: Retrieves all active orders that are NOT "Completed" or "Cancelled", sorted by upcoming collection priority (FIFO).
+- Browser URL: http://localhost:8080/api/orders/active
+- Curl Command:
+curl.exe http://localhost:8080/api/orders/active
+
+[B] GET ACTIVE/CURRENT ORDERS FOR A SPECIFIC USER (GET)
+- Note: Retrieves active, uncompleted orders specifically tracking real-time queue states for a specific User ID (e.g., User ID 1).
+- Browser URL: http://localhost:8080/api/orders/user/1/current
+- Curl Command:
+curl.exe http://localhost:8080/api/orders/user/1/current
+
+
+------------------------------------------------------------------------
+10. ERROR & EXCEPTION TESTING
+------------------------------------------------------------------------
+
+[A] REQUEST AN INVALID ORDER ID (EXPECTS 404 NOT FOUND)
+- Note: Verifies that GlobalExceptionHandler catches ResourceNotFoundException cleanly.
+- Browser URL: http://localhost:8080/api/orders/9999
+- Curl Command:
+curl.exe http://localhost:8080/api/orders/9999
+
+[B] REQUEST HISTORY FOR INVALID USER ID (EXPECTS 404 NOT FOUND)
+- Note: Verifies that user validation throws an exception caught as an API error.
+- Browser URL: http://localhost:8080/api/orders/user/9999
+- Curl Command:
+curl.exe http://localhost:8080/api/orders/user/9999
+
+
+------------------------------------------------------------------------
+11. OUT-OF-STOCK & AVAILABILITY TESTING
+------------------------------------------------------------------------
+
+To verify that the checkout guards protect the system when ingredients or items are out of stock:
+
+[A] PREPARATION: MANUALLY SET MENU ITEM TO OUT OF STOCK
+- Open your database GUI (such as phpMyAdmin or MySQL Workbench) and set the 'available' column of your Menu Item (ID 1) to 0 (false).
+
+[B] ATTEMPT CHECKOUT WITH OUT-OF-STOCK ITEM (EXPECTS 400 BAD REQUEST)
+- Note: The request should fail before writing to the database, and return your clean, custom validation message.
+- Curl Command (Windows PowerShell):
+curl.exe --% -X POST "http://localhost:8080/api/orders/checkout" -H "Content-Type: application/json" -d "{\"userId\":1,\"items\":[{\"menuItemId\":1,\"quantity\":2,\"specialInstructions\":\"Well done please\",\"modifierIds\":[1,2]}]}"
+
+- Expected JSON Output:
+{
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Cannot place order: 'Classic Beef Burger' is currently out of stock.",
+  "timestamp": "2026-07-15T16:20:45.1482756"
+}
+
+
+------------------------------------------------------------------------
+12. ORDERING TIME WINDOWS (08h00 - 15h30)
+------------------------------------------------------------------------
+
+To verify that the system blocks checkouts attempted before opening (08h00) or after closing (15h30):
+
+[A] TEST ORDER AFTER CLOSING TIME (EXPECTS 400 BAD REQUEST IF AFTER 15h30)
+- Note: Running this command after 15h30 should instantly throw a validation error.
+- Curl Command (Windows PowerShell):
+curl.exe --% -X POST "http://localhost:8080/api/orders/checkout" -H "Content-Type: application/json" -d "{\"userId\":1,\"items\":[{\"menuItemId\":1,\"quantity\":1,\"specialInstructions\":\"Testing closing time guard\",\"modifierIds\":[]}]}"
+
+[B] TEST ORDER BEFORE OPENING TIME (EXPECTS 400 BAD REQUEST IF BEFORE 08h00)
+- Note: Running this command before 08h00 in the morning should instantly throw a validation error.
+- Curl Command (Windows PowerShell):
+curl.exe --% -X POST "http://localhost:8080/api/orders/checkout" -H "Content-Type: application/json" -d "{\"userId\":1,\"items\":[{\"menuItemId\":1,\"quantity\":1,\"specialInstructions\":\"Testing opening time guard\",\"modifierIds\":[]}]}"
+
+- Expected JSON Output (If out of hours):
+{
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Cannot place order: The cafeteria is closed. Pre-orders are only accepted between 08:00 and 15:30.",
+  "timestamp": "2026-07-17T15:40:12.1124231"
+}

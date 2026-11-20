@@ -1,0 +1,75 @@
+API calls
+
+* - Not yet tested in addViewTesting.txt
+
+=========================================================================================================================================================================================
+
+Authentication
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    POST /api/auth/register                         // Register new user, hash password & return JWT
+    POST /api/auth/login                            // Authenticate user & issue JWT
+    POST /api/auth/logout                           // Invalidate token / server-side blacklist
+    GET  /api/auth/me                               // Get current authenticated user profile
+
+
+Roles
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+	POST /api/roles
+	GET /api/roles
+
+
+Users
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+	GET  /api/users
+*	GET  /api/users/{id}
+	POST /api/users
+*	PUT  /api/users/{id}
+
+
+Menu & Categories
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+	GET  /api/categories
+	POST /api/categories
+*	PUT  /api/categories/{id}
+*	DELETE /api/categories/{id}
+
+	GET  /api/menu-items                            // Student view (Available items only)
+*	GET  /api/menu-items/all                        // Staff view (Includes out-of-stock items)
+	GET  /api/menu-items/{id}
+	GET  /api/menu-items/category/{categoryId}
+	POST /api/menu-items
+*	PUT  /api/menu-items/{id}
+*	PATCH /api/menu-items/{id}/toggle-stock          // Instant out-of-stock toggle
+*	DELETE /api/menu-items/{id}
+
+
+Modifiers & Customizations
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+*	GET  /api/modifier-groups
+	POST /api/modifier-groups
+*	PUT  /api/modifier-groups/{id}
+	POST /api/modifiers
+*	PUT  /api/modifiers/{id}
+	POST /api/menu-items/{menuItemId}/modifier-groups/{modifierGroupId}
+	GET  /api/menu-items/{id}/customizations
+
+
+Orders & Kitchen Dashboard
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+	POST /api/orders/checkout                       // Validated for stock and open hours
+	GET  /api/orders                                // All historical orders (Admin)
+	GET  /api/orders/{id}
+	GET  /api/orders/user/{id}                      // Order history for user
+	GET  /api/orders/user/{id}/current              // Active order tracking for student UI
+	GET  /api/orders/active                         // Kitchen active queue (FIFO)
+	PUT  /api/orders/{id}/status                    // Advance status & record audit log
+	POST /api/orders/{id}/cancel                    // Restricted cancellation guard
+
+
+Error & Validation Testing
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+	GET /api/orders/9999                             // Error test: expected 404
+	GET /api/orders/user/9999                        // Error test: expected 404
+
+	POST /api/orders/checkout                        // Out-of-stock validation test
+	POST /api/orders/checkout                        // Opening/closing time validation test

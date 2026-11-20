@@ -1,0 +1,95 @@
+Testing Strategy & Architecture
+
+    1. Overview & Objectives
+        This document defines the testing strategy for the Cafeteria Ordering Backend API.
+            Primary objective: maintain test suite that verifies business rules, HTTP API contracts,
+            and security policies (JWT authentication, role authorization, token blacklisting) without creating
+            unnecessary test execution overhead.
+
+---------------------------------------------------------------------------------------------------------------------
+
+    2. Testing Pyramid & Responsibilities
+
+        A three-tier testing approach balancing execution speed and test fidelity:
+
+            / \
+           /   \        3. Security & Full Integration Tests (@SpringBootTest + MockMvc)
+          /     \       -> Tests end-to-end security pipelines, JWT handling & DB interactions.
+         /-------\
+        /         \     2. Controller Integration Tests (MockMvc + @WithMockUser)
+       /           \    -> Tests REST endpoints, JSON serialization & HTTP responses.
+      /-------------\
+     /               \  1. Unit Tests (JUnit 5 + Mockito)
+    /-----------------\ -> Blazing-fast isolated business logic testing in memory.
+
+        Layer 1: Unit Tests (Service Layer)
+        * **Scope:** Business logic, validation rules, data transformations, custom exceptions.
+        * **Location:** `src/test/java/.../service/`
+        * **Technology:** JUnit 5, Mockito (`@ExtendWith(MockitoExtension.class)`).
+        * **Strategy:** All repository dependencies, utility classes, and Spring components are mocked (`@Mock`). No database or Spring context is loaded. Tests execute in milliseconds.
+
+        Layer 2: Controller Integration Tests (Web Layer)
+        * **Scope:** REST request mappings, DTO validations, HTTP status codes (`200`, `201`, `400`, `404`), error handling responses (`GlobalExceptionHandler`).
+        * **Location:** `src/test/java/.../controller/`
+        * **Technology:** Spring Boot Test (`@SpringBootTest` or `@WebMvcTest`), `MockMvc`, Security Test Annotations (`@WithMockUser`).
+        * **Strategy:** Use `@WithMockUser(username = "...", roles = {"Customer"})` to simulate authenticated users directly in the `SecurityContextHolder`. This bypasses manually generating real JWTs for every controller test.
+
+        Layer 3: Security & Pipeline Tests (Full Flow)
+        * **Scope:** Real authentication flow, JWT token generation/parsing (`JwtUtils`), `JwtAuthenticationFilter`, token expiration, and revoked token blacklisting (`TokenBlacklistService`).
+        * **Location:** `src/test/java/.../security/` and `src/test/java/.../controller/AuthControllerIntegrationTest.java`
+        * **Technology:** `@SpringBootTest`, `@AutoConfigureMockMvc`, `@Transactional`.
+        * **Strategy:** Test complete user journeys: Register -> Login -> Access Protected Route with Bearer Token -> Logout (Blacklist) -> Verify subsequent requests return `401 Unauthorized`.
+
+---------------------------------------------------------------------------------------------------------------------
+
+    3. Package Structure & Naming Conventions
+
+        ### Test Package Mapping
+        Tests in `src/test/java` must strictly mirror the main application package structure under `org.example.cafeteria_ordering_backend`:
+
+        * `config/` -> Security and CORS configuration tests.
+        * `controller/` -> Integration tests for REST endpoints.
+        * `security/` -> Isolated tests for JWT and Security Filters.
+        * `service/` -> Unit tests for Service implementations.
+
+        Naming Rules
+            * **Unit Test Classes:** `[TargetClass]Test.java` (e.g., `AuthServiceImplTest.java`)
+            * **Integration Test Classes:** `[TargetClass]IntegrationTest.java` (e.g., `AuthControllerIntegrationTest.java`)
+            * **Test Method Names:** `[methodName]_[expectedBehavior]_[whenCondition]()`
+            * *Example:* `register_ThrowsException_WhenEmailAlreadyRegistered()`
+            * *Example:* `testGetOrders_AuthenticatedCustomer_Returns200()`
+
+---------------------------------------------------------------------------------------------------------------------
+
+    4. Test Execution Guidelines
+
+        Running Tests via IntelliJ IDEA
+            1. Right-click `src/test/java` directory.
+            2. Select **Run 'All Tests'**.
+
+        Running Tests via Maven Wrapper
+            Execute from the `Backend/` directory:
+
+        ```bash
+        # Run all unit and integration tests
+        ./mvnw test
+
+        # Run a specific test class
+        ./mvnw test -Dtest=AuthServiceImplTest
+
+        # Run only unit tests (excluding integration tests)
+        ./mvnw test -Dtest=*Service*Test
+
+---------------------------------------------------------------------------------------------------------------------
+
+    5. Manual API Testing Strategy (Postman)
+        For manual API exploration in Postman:
+        Environment variables store {{baseUrl}} and {{jwt_token}}.
+        A test script attached to the /api/auth/login and /api/auth/register endpoints automatically extracts the JWT token from the JSON response and updates {{jwt_token}}.
+        All collection requests inherit Bearer Token authorization using {{jwt_token}}.
+        Exported collections and environment profiles are stored under Documentation/testing/.
+
+        <ElicitationsGroup message="Where would you like to go next?">
+        <Elicitation label="Create Postman documentation" query="Let's create the Postman setup documentation file in Documentation/testing/."/>
+        <Elicitation label="Write AuthServiceImplTest" query="Let's write the AuthServiceImplTest class in src/test/java/org/example/cafeteria_ordering_backend/service/ to start our unit test coverage."/>
+        </ElicitationsGroup>

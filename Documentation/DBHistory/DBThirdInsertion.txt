@@ -1,0 +1,16 @@
+-- --------------------------------------------------------
+-- Modify modifier group removing link to menu item, removing menu item id column
+-- --------------------------------------------------------
+
+-- 12 or 13/07/26 dropped menu item id column from modifier groups as is working through intermediary table
+ALTER TABLE modifier_groups DROP FOREIGN KEY fk_modifier_groups_menu_items;
+ALTER TABLE modifier_groups DROP COLUMN menu_item_id;
+
+
+-- 14/07/26 dropped those 2 columns from that table, had named them diff on the entity so it created new columns,
+-- so these are redundant
+ALTER TABLE modifiers
+DROP COLUMN is_available,
+DROP COLUMN price_modifier;
+
+

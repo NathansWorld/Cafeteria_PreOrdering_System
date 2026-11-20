@@ -1,0 +1,1659 @@
+{
+  "info": {
+    "_postman_id": "0c7a1f41-1dcb-4e18-a9fe-ef79b70189aa",
+    "name": "Cafeteria API Integration Suite",
+    "description": "Automated endpoint test suite matched to 'Cafeteria Local' environment schema.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "58493956"
+  },
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Register Student",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 201 Created or 400 (if already registered)', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([201, 400]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"{{first_name}}\",\n  \"lastName\": \"{{last_name}}\",\n  \"email\": \"{{student_email}}\",\n  \"password\": \"{{student_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login (Auto-captures JWT)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Extract and save JWT token', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    var token = jsonData.token || jsonData.jwt || jsonData.accessToken;",
+                  "    pm.expect(token).to.be.a('string').and.not.be.empty;",
+                  "    pm.environment.set('jwt_token', token);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{student_email}}\",\n  \"password\": \"{{student_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Verify student profile details', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    var expectedEmail = pm.environment.get('student_email');",
+                  "    if (jsonData.email) {",
+                  "        pm.expect(jsonData.email).to.eql(expectedEmail);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Staff Login",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"{{staff_email}}\",\r\n  \"password\": \"{{staff_password}}\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/staff-login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "staff-login"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Categories",
+      "item": [
+        {
+          "name": "Create Category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Category creation succeeds (201 Created)', function () {\n    pm.response.to.have.status(201);\n});\npm.test('Capture created category ID', function () {\n    var jsonData = pm.response.json();\n    var categoryId = jsonData.id || jsonData.categoryId;\n    if (categoryId) {\n        pm.environment.set('created_category_id', categoryId);\n    }\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"categoryName\": \"Beverages4\",\n  \"displayOrder\": 1,\n  \"createdAt\": \"2026-09-30T14:12:00\",\n  \"updatedAt\": \"2026-09-30T14:12:00\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/categories",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Active Categories",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Active categories array returned', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/categories",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Menu Items & Customizations",
+      "item": [
+        {
+          "name": "Create Menu Item in Category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Menu item creation succeeds (201 Created)', function () {\n    pm.response.to.have.status(201);\n});\npm.test('Capture created menu item ID', function () {\n    var jsonData = pm.response.json();\n    var itemId = jsonData.id || jsonData.menuItemId;\n    pm.expect(itemId).to.exist;\n    pm.environment.set('created_menu_item_id', itemId);\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Cappuccino2\",\n  \"description\": \"Rich espresso with steamed milk foam\",\n  \"price\": 32.50,\n  \"available\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/menu-items/category/{{created_category_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "menu-items",
+                "category",
+                "{{created_category_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Menu Items by Category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Response is an array', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/menu-items/category/{{created_category_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "menu-items",
+                "category",
+                "{{created_category_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Menu Item by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Menu item object details returned', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('object');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/menu-items/{{created_menu_item_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "menu-items",
+                "{{created_menu_item_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Menu Items",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Menu items list is returned', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/menu-items",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "menu-items"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Modifier Group for Item",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Modifier group created successfully (200 OK)', function () {\n    pm.response.to.have.status(200);\n});\npm.test('Extract and save modifier group ID', function () {\n    var jsonData = pm.response.json();\n    var groupId = jsonData.id || jsonData.groupId;\n    pm.expect(groupId).to.exist;\n    pm.environment.set('created_modifier_group_id', groupId);\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Milk Options\",\n  \"minSelections\": 1,\n  \"maxSelections\": 1,\n  \"isRequired\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/menu-items/{{menu_item_id}}/modifier-groups",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "menu-items",
+                "{{menu_item_id}}",
+                "modifier-groups"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Put Update Modifier Group",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200 OK\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\npm.test(\"Name is updated\", function () {\r\n    var jsonData = pm.response.json();\r\n    pm.expect(jsonData.name).to.eql(\"Updated Milk Options\");\r\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"Updated Milk Options2\",\r\n    \"minSelections\": 1,\r\n    \"maxSelections\": 2,\r\n    \"available\": true,\r\n    \"isRequired\": true\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/menu-items/modifier-groups/{{group_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "menu-items",
+                "modifier-groups",
+                "{{group_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Modifier Option to Group",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Modifier option created (200 OK)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Extract and save modifier ID', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    var modifierId = jsonData.id || jsonData.modifierId;",
+                  "    if (modifierId) {",
+                  "        pm.environment.set('created_modifier_id', modifierId);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Oat Milk\",\n  \"price\": 5.00,\n  \"available\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/menu-items/modifier-groups/{{created_modifier_group_id}}/modifiers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "menu-items",
+                "modifier-groups",
+                "{{created_modifier_group_id}}",
+                "modifiers"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Put Update Modifier Option",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200 OK\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\npm.test(\"Modifier price and name updated\", function () {\r\n    var jsonData = pm.response.json();\r\n    pm.expect(jsonData.name).to.eql(\"Almond Milk\");\r\n    pm.expect(jsonData.priceModifier).to.eql(7.00);\r\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"Almond Milk2\",\r\n    \"priceModifier\": 7.00,\r\n    \"available\": true\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/menu-items/modifiers/{{modifier_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "menu-items",
+                "modifiers",
+                "{{modifier_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Modifier Option",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 204 No Content\", function () {\r\n    pm.response.to.have.status(204);\r\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/menu-items/modifiers/{{modifier_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "menu-items",
+                "modifiers",
+                "{{modifier_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Modifier Group",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 204 No Content\", function () {\r\n    pm.response.to.have.status(204);\r\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/menu-items/modifier-groups/{{group_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "menu-items",
+                "modifier-groups",
+                "{{group_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Item Customizations",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {\n    pm.response.to.have.status(200);\n});\npm.test('Customizations list is an array', function () {\n    var jsonData = pm.response.json();\n    pm.expect(jsonData).to.be.an('array');\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/menu-items/{{menu_itemid}}/customizations",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "menu-items",
+                "{{menu_itemid}}",
+                "customizations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Customizations Non-Existent Item (Expect 404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Non-existent menu item triggers 404 Not Found', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Invalid Group\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/menu-items/999999/modifier-groups",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "menu-items",
+                "999999",
+                "modifier-groups"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Post Upload Image for menu-item",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Extract response JSON\r\nconst response = pm.response.json();\r\n\r\n// Store the complete image URL (e.g., https://res.cloudinary.com/...)\r\npm.environment.set(\"uploaded_image_url\", response.imagePath);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "/C:/Users/chazb/Pictures/Screenshots/Screenshot 2024-05-16 125529.png"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/menu-items/{{created_menu_item_id}}/image",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "menu-items",
+                "{{created_menu_item_id}}",
+                "image"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Verify Image Served Statically",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200 OK\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"Cache-Control header is set for 7 days\", function () {\r\n    pm.response.to.have.header(\"Cache-Control\");\r\n    pm.expect(pm.response.headers.get(\"Cache-Control\")).to.include(\"max-age=604800\");\r\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{uploaded_image_path}}",
+              "host": [
+                "{{uploaded_image_path}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Delete Menu Item Image",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// 1. Verify HTTP Status 200 OK\r\npm.test(\"Status code is 200 OK\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\n// 2. Parse Response Body\r\nconst responseData = pm.response.json();\r\n\r\n// 3. Verify the menu item's imagePath property was cleared in the DB\r\npm.test(\"Image path in menu item response is null or empty\", function () {\r\n    pm.expect(responseData).to.have.property(\"imagePath\");\r\n    pm.expect(responseData.imagePath).to.be.oneOf([null, \"\"]);\r\n});\r\n\r\n// 4. Update or clear the test variable in environment\r\npm.environment.set(\"uploaded_image_url\", \"\");"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "",
+                "value": "",
+                "disabled": true
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/menu-items/{{created_menu_item_id}}/image",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "menu-items",
+                "{{created_menu_item_id}}",
+                "image"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Patch Toggle Item Availabiliity",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/menu-items/{{id}}/availability?available=true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "menu-items",
+                "{{id}}",
+                "availability"
+              ],
+              "query": [
+                {
+                  "key": "available",
+                  "value": "true"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Order Workflow",
+      "item": [
+        {
+          "name": "Create Order / Checkout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Order creation succeeds (201 Created)', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Capture created order ID', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    var orderId = jsonData.id || jsonData.orderId;",
+                  "    pm.expect(orderId).to.exist;",
+                  "    pm.environment.set('placed_order_id', orderId);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": 1,\n  \"items\": [\n    {\n      \"menuItemId\": {{created_menu_item_id}},\n      \"quantity\": 2,\n      \"specialInstructions\": \"Extra hot\",\n      \"modifierIds\": [\"{{created_modifier_id}}\"]\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/orders/checkout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "checkout"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Order by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Order ID matches request', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    var expectedId = pm.environment.get('placed_order_id');",
+                  "    pm.expect(String(jsonData.id || jsonData.orderId)).to.eql(String(expectedId));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/orders/{{placed_order_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{placed_order_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Orders (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Response is an array', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/orders",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "orders"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Active Orders Board",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Active orders list returned as array', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/orders/active",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "active"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Orders by User ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('User order history returned as array', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/orders/user/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "user",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Active Orders by User ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Current user active orders returned as array', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/orders/user/1/current",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "user",
+                "1",
+                "current"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Order Status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Verify order status updated', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    var statusName = jsonData.statusName || jsonData.status;",
+                  "    if (statusName) {",
+                  "        pm.expect(statusName).to.eql('PREPARING');",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"statusName\": \"PREPARING\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/orders/{{placed_order_id}}/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "orders",
+                "{{placed_order_id}}",
+                "status"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Menu Item (Before Order Stock Check)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Menu Item (After Order Sock Check)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Checkout (Insufficient Stock)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Order (Stock Return)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": ""
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Role Management",
+      "item": [
+        {
+          "name": "Get All Roles",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Response returns an array of roles', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/roles",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "roles"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Users by Rolename",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {\r\n    pm.response.to.have.status(200);\r\n});\r\n\r\npm.test(\"Response is a non-empty array\", function () {\r\n    var jsonData = pm.response.json();\r\n    pm.expect(jsonData).to.be.an('array');\r\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/role/STUDENT",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "role",
+                "STUDENT"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get all active/inactive users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/status/true",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "status",
+                "true"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "6. User Management",
+      "item": [
+        {
+          "name": "Register User with Role ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('User registration with Role ID succeeds (201 Created)', function () {\n    pm.response.to.have.status(201);\n});\npm.test('Extract and save created user ID', function () {\n    var jsonData = pm.response.json();\n    var userId = jsonData.id || jsonData.userId;\n    pm.expect(userId).to.exist;\n    pm.environment.set('created_user_id', userId);\n});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Staff\",\n  \"lastName\": \"Member\",\n  \"email\": \"staff.membe9r@eduvos.com\",\n  \"passwordHash\": \"StaffPassword123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users?roleId=3",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "roleId",
+                  "value": "3"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Users",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Users list returned as array', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status code is 200 OK', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('User details object returned', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('object');",
+                  "    var expectedId = pm.environment.get('created_user_id');",
+                  "    if (expectedId && jsonData.id) {",
+                  "        pm.expect(String(jsonData.id)).to.eql(String(expectedId));",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/{{created_user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "{{created_user_id}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "7. Token Revocation & Security Guard Checks",
+      "item": [
+        {
+          "name": "Logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Logout succeeds (200)', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Revoked Token Fails (Expect 401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Blacklisted token rejected with 401 Unauthorized', function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Put admin suspend user",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/4/suspend",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "4",
+                "suspend"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Put Admin Unsuspend",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users/4/unsuspend",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "4",
+                "unsuspend"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "8. Operating Status",
+      "item": [
+        {
+          "name": "Get isOpen",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/cafeteria-status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "cafeteria-status"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Post Force Open",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/cafeteria-status/force-open",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "cafeteria-status",
+                "force-open"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Post Reset Schedule",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/cafeteria-status/reset-schedule",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "cafeteria-status",
+                "reset-schedule"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "New Request",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/cafeteria-status/force-close",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "cafeteria-status",
+                "force-close"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwt_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Clear dynamic session state before running first item in sequence",
+          "if (!pm.info.iterationCount || pm.info.iteration === 0) {",
+          "    if (pm.info.requestName === 'Register Student') {",
+          "        pm.environment.unset('jwt_token');",
+          "        pm.environment.unset('placed_order_id');",
+          "        pm.environment.unset('created_category_id');",
+          "        pm.environment.unset('created_menu_item_id');",
+          "        pm.environment.unset('created_modifier_group_id');",
+          "        pm.environment.unset('created_modifier_id');",
+          "        pm.environment.unset('created_user_id');",
+          "    }",
+          "}"
+        ]
+      }
+    }
+  ]
+}

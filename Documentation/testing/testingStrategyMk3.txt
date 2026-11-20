@@ -1,0 +1,330 @@
+============================================================
+CAFETERIA ORDERING BACKEND - TESTING STRATEGY & ARCHITECTURE
+============================================================
+
+1. OVERVIEW & OBJECTIVES
+------------------------------------------------------------------------
+
+This document defines the complete testing strategy and architecture for
+the Cafeteria Ordering Backend API.
+
+The primary objective is to maintain a dual-layer testing pipeline—combining
+automated unit/integration tests with an extensive manual & automated API
+test suite—that verifies:
+
+- Business Rules & Service-Layer Logic: Core domain rules, stock management,
+  order lifecycle transitions, and validation guards.
+
+- REST API Contracts & HTTP Serialization: Dynamic request mapping, DTO
+  transformations, status codes (200 OK, 201 Created, 400 Bad Request,
+  401 Unauthorized, 403 Forbidden, 404 Not Found, 204 No Content).
+
+- Authentication, Security & Session Management: JWT generation, claims parsing,
+  role-based access control (RBAC), user suspension/unsuspension, and immediate
+  token blacklisting/revocation upon logout.
+
+- Media Management & Static Caching: Media upload pipelines (Cloudinary SDK)
+  and HTTP Cache-Control header verification.
+
+- Operational Guards: Cafeteria operating schedule validation, force-open/force-close
+  administrative overrides, and inventory availability checks.
+
+- Real-time Messaging: WebSocket order event propagation for kitchen and
+  student boards.
+
+
+2. TESTING PYRAMID & RESPONSIBILITIES
+------------------------------------------------------------------------
+
+The project follows a multi-tier testing approach balancing execution speed,
+component isolation, and full-system fidelity.
+
+                     /\
+                    /  \        4. Manual & Postman Integration Suite
+                   /    \          (Postman Collection & CLI cURL Suite)
+                  /      \         End-to-end API execution, dynamic JWT auto-capture,
+                 /--------\        image uploads, operating status overrides.
+                /          \
+               /            \   3. Security & Full Integration Tests
+              /              \     (@SpringBootTest + MockMvc)
+             /----------------\    Real security pipelines, JWT handling, DB interaction
+            /                  \   & WebSocket event propagation.
+           /                    \
+          /                      \  2. Controller / Web Layer Tests
+         /                        \    (MockMvc + @WithMockUser)
+        /                          \   REST endpoint contracts, DTO validation,
+       /----------------------------\  HTTP status codes & JSON mapping.
+      /                              \
+     /                                \  1. Unit Tests
+    /                                  \    (JUnit 5 + Mockito)
+   /____________________________________\   Blazing-fast isolated service business logic.
+
+
+Layer 1: Unit Tests — Service Layer
+
+- Scope: Isolated business rules, validation logic, custom exception throwing,
+  and order lifecycle constraints.
+
+- Location: src/test/java/org/example/cafeteria_ordering_backend/service/
+
+- Technology: JUnit 5, Mockito (@ExtendWith(MockitoExtension.class)).
+
+- Strategy: Dependencies (repositories, utility components) are mocked via
+  @Mock. No database or Spring context is loaded, ensuring tests run in
+  milliseconds.
+
+
+Layer 2: Controller / Web Tests
+
+- Scope: REST request mappings, query parameters, path variables, DTO
+  validations, HTTP response statuses, and exception-to-HTTP mapping
+  (GlobalExceptionHandler).
+
+- Location: src/test/java/org/example/cafeteria_ordering_backend/controller/
+
+- Technology: MockMvc, @WebMvcTest / @SpringBootTest, @MockitoBean, @WithMockUser.
+
+- Strategy: Isolates the controller layer. @WithMockUser simulates authenticated
+  sessions with specific roles (ROLE_STUDENT, ROLE_CUSTOMER, ROLE_STAFF, ROLE_ADMIN)
+  without generating actual JWT tokens.
+
+
+Layer 3: Security & Full Integration Tests
+
+- Scope: Full Spring Security filter chain (JwtAuthenticationFilter), real
+  JWT generation/parsing (JwtUtils), token revocation (TokenBlacklistService),
+  database persistence, and WebSocket STOMP messaging.
+
+- Location:
+  * src/test/java/org/example/cafeteria_ordering_backend/security/
+  * src/test/java/org/example/cafeteria_ordering_backend/controller/
+  * src/test/java/org/example/cafeteria_ordering_backend/websocket/
+
+- Technology: @SpringBootTest, @AutoConfigureMockMvc, @Transactional.
+
+
+Layer 4: Manual & Postman Integration Testing
+
+- Scope: End-to-end blackbox API validation against a running application
+  instance, covering cURL multi-platform execution, Postman dynamic environment
+  automated testing, and cloud media handling.
+
+- Location: Documentation/testing/
+
+- Technology: Postman Collection v2.1, Postman Environment Variables,
+  cURL (Git Bash / Windows CMD / PowerShell).
+
+
+3. PACKAGE STRUCTURE & TEST ORGANIZATION
+------------------------------------------------------------------------
+
+Automated Java tests strictly mirror the production package layout under
+org.example.cafeteria_ordering_backend:
+
+src/test/java/org/example/cafeteria_ordering_backend/
+│
+├── controller/
+│   ├── OrderControllerTest.java
+│   └── OrderSecurityTest.java
+│
+├── security/
+│   └── JwtAuthenticationFilterTest.java
+│
+├── service/
+│   ├── AuthServiceImplTest.java
+│   ├── CategoryServiceImplTest.java
+│   ├── MenuCustomizationServiceImplTest.java
+│   ├── MenuItemServiceImplTest.java
+│   └── OrderServiceImplTest.java
+│
+└── websocket/
+    ├── WebSocketOrderIntegrationTest.java
+    ├── CheckoutWebSocketIntegrationTest.java
+    └── CancellationWebSocketIntegrationTest.java
+
+
+4. MANUAL API & COMMAND-LINE TESTING SUITE (addViewTesting.txt)
+------------------------------------------------------------------------
+
+For lightweight verification without Postman, a structured cURL testing
+guide (addViewTesting.txt) is maintained with pre-formatted commands for
+
+Git Bash, macOS/Linux, Windows CMD, and Windows PowerShell (curl.exe --%).
+
+
+Core Verified Endpoints & Scope:
+
+Section 1: Auth
+- POST /api/auth/register (Public) - Registers a new user account.
+- POST /api/auth/login (Public) - Authenticates user and returns Bearer JWT token.
+- GET /api/auth/me (Protected) - Retrieves the current user profile.
+- POST /api/auth/logout (Protected) - Invalidates current Bearer JWT token in TokenBlacklistService.
+
+Section 2: Roles
+- GET /api/roles (Protected) - Lists all user roles in the system.
+
+Section 3: Users
+- POST /api/users?roleId={id} (Admin) - Creates a user directly assigned to a specific role.
+- GET /api/users (Protected) - Retrieves list of registered users.
+- GET /api/users/{id} (Protected) - Fetches specific user profile by ID.
+
+Section 4: Categories
+- POST /api/categories (Admin/Staff) - Creates a new food/beverage category.
+- GET /api/categories (Public/Protected) - Retrieves active food categories.
+
+Section 5: Menu Items
+- POST /api/menu-items/category/{id} (Admin/Staff) - Adds a menu item under a category.
+- GET /api/menu-items (Public/Protected) - Retrieves all menu items.
+- GET /api/menu-items/{id} (Public/Protected) - Fetches specific menu item details.
+
+Section 6: Customizations
+- POST /api/menu-items/{id}/modifier-groups (Admin/Staff) - Creates a modifier group (e.g., "Choose Sauce").
+- POST /api/menu-items/modifier-groups/{id}/modifiers (Admin/Staff) - Adds modifier options (e.g., "BBQ Sauce (+R5.00)").
+- GET /api/menu-items/{id}/customizations (Protected) - Fetches modifier options and groups for an item.
+
+Section 7: Orders
+- POST /api/orders/checkout (Protected) - Places an order with selected items & modifiers.
+- GET /api/orders (Staff/Admin) - Retrieves all system orders.
+- GET /api/orders/user/{userId} (Protected) - Retrieves order history for a specific user.
+
+Section 8: Lifecycle
+- PUT /api/orders/{id}/status (Staff/Admin) - Updates status (e.g., Submitted -> Preparing).
+- GET /api/orders/active (Staff/Admin) - Retrieves active kitchen board orders.
+- GET /api/orders/user/{id}/current (Protected) - Retrieves currently active orders for a customer.
+
+Section 9: Business Rule Guards
+- POST /api/orders/checkout (Protected) - Verifies out-of-stock and non-operating hours block checkout.
+
+5. POSTMAN INTEGRATION SUITE ARCHITECTURE
+------------------------------------------------------------------------
+
+The primary tool for interactive and scripted API testing is the Cafeteria API
+Integration Suite Postman collection coupled with the Cafeteria Local environment
+schema.
+
+Key Suite Features:
+1. Dynamic JWT Auto-Capture: Login tests execute test scripts
+   (pm.environment.set('jwt_token', token)) that capture authorization tokens
+   and inject them automatically into subsequent collection calls via standard
+   Bearer Auth inheritance.
+
+2. Environment Lifecycle Management: Pre-request scripts clean dynamic state
+   (placed_order_id, created_category_id, created_menu_item_id, created_modifier_group_id,
+   etc.) automatically before execution sequences start.
+
+3. Assertions & Validations: Every request contains JavaScript test assertions
+   verifying status codes, field data types, array response shapes, and specific
+   string values.
+
+
+Collection Folder Structure:
+
+Cafeteria API Integration Suite
+│
+├── 1. Authentication
+│   ├── Register Student
+│   ├── Login (Auto-captures JWT)
+│   ├── Get User Profile
+│   └── Staff Login
+│
+├── 2. Categories
+│   ├── Create Category (Captures created_category_id)
+│   └── Get All Active Categories
+│
+├── 3. Menu Items & Customizations
+│   ├── Create Menu Item in Category (Captures created_menu_item_id)
+│   ├── Get Menu Items by Category / Get Menu Item by ID / Get All Menu Items
+│   ├── Create Modifier Group for Item (Captures created_modifier_group_id)
+│   ├── Put Update Modifier Group / Delete Modifier Group
+│   ├── Add Modifier Option to Group (Captures created_modifier_id)
+│   ├── Put Update Modifier Option / Delete Modifier Option
+│   ├── Get Item Customizations / Non-Existent Item (Expect 404)
+│   ├── Post Upload Image for Menu-Item (Multipart Cloudinary upload)
+│   ├── Get Verify Image Served Statically (Validates Cache-Control: max-age=604800)
+│   ├── Delete Menu Item Image (Verifies imagePath set to null in DB)
+│   └── Patch Toggle Item Availability
+│
+├── 4. Order Workflow
+│   ├── Create Order / Checkout (Captures placed_order_id)
+│   ├── Get Order by ID / Get All Orders (Admin)
+│   ├── Get Active Orders Board / Get Orders by User ID / Get Active Orders by User ID
+│   ├── Update Order Status (Verifies PREPARING transition)
+│   ├── Stock Checks (Before/After Order Stock Check)
+│   ├── Checkout (Insufficient Stock)
+│   └── Cancel Order (Stock Return Verification)
+│
+├── 5. Role Management
+│   ├── Get All Roles
+│   ├── Get Users by Rolename (/api/users/role/STUDENT)
+│   └── Get all active/inactive users (/api/users/status/true)
+│
+├── 6. User Management
+│   ├── Register User with Role ID (/api/users?roleId=3)
+│   ├── Get All Users
+│   └── Get User by ID
+│
+├── 7. Token Revocation & Security Guard Checks
+│   ├── Logout (/api/auth/logout)
+│   ├── Verify Revoked Token Fails (Expect 401 Unauthorized)
+│   ├── Put Admin Suspend User (/api/users/{id}/suspend)
+│   └── Put Admin Unsuspend User (/api/users/{id}/unsuspend)
+│
+└── 8. Operating Status
+    ├── Get isOpen (/api/cafeteria-status)
+    ├── Post Force Open (/api/cafeteria-status/force-open)
+    ├── Post Reset Schedule (/api/cafeteria-status/reset-schedule)
+    └── Post Force Close (/api/cafeteria-status/force-close)
+
+
+6. EXECUTION GUIDELINES
+------------------------------------------------------------------------
+
+Running Automated Java Tests (IntelliJ IDEA & Maven)
+- IntelliJ IDEA: Right-click src/test/java -> Run 'All Tests'.
+- Maven Command Line (Windows PowerShell / CMD):
+  # Execute complete automated test suite
+  .\mvnw.cmd test
+
+  # Run a specific unit test class
+  .\mvnw.cmd test -Dtest=AuthServiceImplTest
+
+  # Run a specific single test method
+  .\mvnw.cmd test -Dtest=AuthServiceImplTest#register_ThrowsException_WhenEmailAlreadyRegistered
+
+  # Run all Service Unit Tests only
+  .\mvnw.cmd test -Dtest=*Service*Test
+
+
+Running the Postman Collection Runner
+1. Import the exported Postman collection JSON and the Cafeteria Local
+   environment file into Postman.
+
+2. Ensure the Spring Boot backend service is running locally (http://localhost:8080).
+
+3. Select the collection root -> Click Run Collection.
+
+4. Verify that all automated assertions pass in sequence across all 8 modules.
+
+
+7. DEFINITION OF A SUCCESSFUL TEST
+------------------------------------------------------------------------
+
+A backend test is considered successful only when all of the following
+conditions are satisfied:
+
+1. HTTP Status Code Alignment: The produced status matches the expected contract
+   (200 for reads/updates, 201 for creations, 204 for deletions, 400 for client
+   errors/guards, 401 for unauthorized access, 403 for role denial, 404 for missing
+   resources).
+
+2. Business Rule Enforcement: Input that violates constraints (e.g., placing
+   an order for an out-of-stock item, submitting an order outside operating hours,
+   or accessing an endpoint with a blacklisted JWT) is rejected with an informative
+   error payload.
+
+3. State Integrity: Entities are persisted, modified, or soft-deleted properly
+   in the database without unwanted side effects.
+
+4. Header and Payload Contracts: JSON structures match specified DTOs and HTTP
+   headers match requirements (such as Cache-Control: max-age=604800 for statically
+   served image assets).
